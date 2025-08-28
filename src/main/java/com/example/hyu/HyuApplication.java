@@ -12,5 +12,5 @@ public class HyuApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(HyuApplication.class, args);
 	}
-
+	
 }
