@@ -12,11 +12,37 @@ concurrency:
 
 env:
   JAVA_VERSION: "17"
-  IMAGE_NAME: "dongurig112/hyu-app"   # 너 Docker Hub 리포 이름
+  IMAGE_NAME: "kimahhyun/hyu-app"
 
 jobs:
   build-test:
     runs-on: ubuntu-latest
+
+    # 👉 여기서 테스트용 DB/Redis를 같이 띄운다
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: app
+          MYSQL_USER: app
+          MYSQL_PASSWORD: app
+        ports: [ "3306:3306" ]
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+      redis:
+        image: redis:7
+        ports: [ "6379:6379" ]
+        options: >-
+          --health-cmd="redis-cli ping || exit 1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -30,8 +56,9 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      - name: Build & Test (Gradle)
-        run: ./gradlew clean build --no-daemon
+      # 👉 테스트는 test 프로필로 실행 (위에서 띄운 MySQL/Redis에 붙음)
+      - name: Build & Test (Gradle, test profile)
+        run: ./gradlew clean build -Dspring.profiles.active=test --no-daemon
 
       - name: Upload JAR artifact (optional)
         uses: actions/upload-artifact@v4
@@ -46,7 +73,6 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
