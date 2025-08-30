@@ -55,7 +55,6 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
 
-      # ✅ 서비스 포트 오픈 확인 (bash TCP 체크)
       - name: Wait for MySQL & Redis
         shell: bash
         run: |
@@ -70,21 +69,10 @@ jobs:
           done
           echo "Services failed to open ports in time"; exit 1
 
-      # (디버깅용) 컨테이너 상태/로그 출력
-      - name: Show containers and last logs
-        if: always()
-        run: |
-          docker ps -a
-          echo "---- MySQL logs (tail) ----"
-          docker logs $(docker ps -q --filter "ancestor=mysql:8.0") --tail 50 || true
-          echo "---- Redis logs (tail) ----"
-          docker logs $(docker ps -q --filter "ancestor=redis:7") --tail 50 || true
-
-      # ✅ 테스트 프로필로 실제 테스트 실행
       - name: Build & Test (Gradle, test profile)
         run: ./gradlew clean build -Dspring.profiles.active=test --no-daemon
 
-      - name: Upload JAR artifact (optional)
+      - name: Upload JAR artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-jars
@@ -97,6 +85,21 @@ jobs:
     if: ${{ github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v4
+
+      # ⬇️ 빌드 잡에서 올린 JAR를 내려받아 루트에 app.jar로 배치
+      - name: Download built JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: app-jars
+          path: app-jars
+
+      - name: Prepare jar for Docker build
+        shell: bash
+        run: |
+          JAR_PATH=$(ls -t app-jars/*.jar | head -n 1)
+          cp "$JAR_PATH" app.jar
+          ls -al app.jar
+
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
