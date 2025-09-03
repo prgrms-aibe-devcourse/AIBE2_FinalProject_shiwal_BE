@@ -28,7 +28,13 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
-     * 회원가입
+     * Register a new user account.
+     *
+     * Creates and persists a User with the provided signup information and returns a UserResponse.
+     *
+     * @param req the signup request containing email, password, name, and nickname
+     * @return a response DTO representing the newly created user
+     * @throws IllegalArgumentException if an account with the given email already exists
      */
     @Transactional
     public UserResponse signup(UserSignupRequest req) {
@@ -49,7 +55,16 @@ public class AuthService {
     }
 
     /**
-     * 로그인 + 로그인 기록 저장
+     * Authenticates a user, issues a JWT bearer token, and records the login event.
+     *
+     * <p>Verifies the provided credentials; on success it generates a JWT for the user,
+     * persists a UserLogin record (timestamp and client IP), and returns a bearer token
+     * response that includes the token and its remaining validity in seconds (1 hour).
+     *
+     * @param req the login request containing the user's email and password
+     * @param httpReq the incoming HTTP request used to extract the client IP address
+     * @return a UserAuthResponse containing the bearer token and its validity (in seconds)
+     * @throws IllegalArgumentException if the email is not found or the password is incorrect
      */
     @Transactional
     public UserAuthResponse login(UserLoginRequest req, HttpServletRequest httpReq) {
@@ -77,6 +92,14 @@ public class AuthService {
         return UserAuthResponse.bearer(token, validityMillis / 1000); // 초 단위 만료 시간
     }
 
+    /**
+     * Determine the client's IP address from the request.
+     *
+     * Prefers the first IP listed in the "X-Forwarded-For" header (comma-separated) when present and non-blank;
+     * otherwise falls back to the request's remote address.
+     *
+     * @return the client's IP address as a String
+     */
     private String extractClientIp(HttpServletRequest req) {
         String xff = req.getHeader("X-Forwarded-For");
         if (xff != null && !xff.isBlank()) {

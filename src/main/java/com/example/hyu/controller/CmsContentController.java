@@ -20,20 +20,51 @@ public class CmsContentController {
 
     private final CmsContentService service;
 
-    // 생성
+    /**
+     * Creates a new CMS content.
+     *
+     * Accepts a validated CMS content payload and the calling admin's identifier, delegates creation to the service,
+     * and returns the created content representation.
+     *
+     * @param req     validated request body containing the content data
+     * @param adminId admin identifier provided via the "X-ADMIN-ID" request header
+     * @return the created CmsContentResponse
+     */
     @PostMapping
     public CmsContentResponse create(@Valid @RequestBody CmsContentRequest req,
                                      @RequestHeader("X-ADMIN-ID") Long adminId) {
         return service.create(req, adminId);
     }
 
-    // 단건 조회
+    /**
+     * Retrieve a CMS content by its ID.
+     *
+     * @param id the content's unique identifier
+     * @return the found CmsContentResponse
+     */
     @GetMapping("/{id}")
     public CmsContentResponse get(@PathVariable Long id) {
         return service.get(id);
     }
 
-    // 목록/검색
+    /**
+     * Searches and returns a paginated list of CMS contents.
+     *
+     * Supports optional filtering by full-text query, category, visibility, and group key,
+     * and paging/sorting via page, size, and sort parameters.
+     *
+     * The `sort` parameter expects the form `"field,dir"` (e.g. `"createdAt,asc"`).
+     * If `dir` is omitted or not `"asc"` (case-insensitive), descending order is used.
+     *
+     * @param q         optional full-text query to match content
+     * @param category  optional category filter
+     * @param visibility optional visibility filter
+     * @param groupKey  optional group key to filter contents belonging to a group
+     * @param page      zero-based page index (default 0)
+     * @param size      page size (default 12)
+     * @param sort      sort specification in the form `field,dir` (default "createdAt,desc")
+     * @return          a page of matching CmsContentResponse objects
+     */
     @GetMapping
     public Page<CmsContentResponse> list(
             @RequestParam(required = false) String q,
@@ -51,7 +82,16 @@ public class CmsContentController {
         return service.search(q, category, visibility, groupKey, pageable);
     }
 
-    // 수정
+    /**
+     * Update an existing CMS content.
+     *
+     * Validates the request body and delegates to the service to perform the update.
+     *
+     * @param id the identifier of the CMS content to update
+     * @param req the update payload (validated)
+     * @param adminId the admin's ID taken from the `X-ADMIN-ID` request header
+     * @return the updated CmsContentResponse
+     */
     @PutMapping("/{id}")
     public CmsContentResponse update(@PathVariable Long id,
                                      @Valid @RequestBody CmsContentRequest req,
@@ -59,7 +99,15 @@ public class CmsContentController {
         return service.update(id, req, adminId);
     }
 
-    // 공개/비공개 토글 (value 파라미터 명시)
+    /**
+     * Set the visibility state for a CMS content item.
+     *
+     * Updates the visibility of the content identified by {@code id} to the provided {@code value}.
+     *
+     * @param id the ID of the CMS content to update
+     * @param value the target visibility state
+     * @param adminId the admin's ID from the "X-ADMIN-ID" request header authorizing the change
+     */
     @PatchMapping("/{id}/visibility")
     public void setVisibility(@PathVariable Long id,
                               @RequestParam("value") Visibility value,
@@ -67,7 +115,13 @@ public class CmsContentController {
         service.toggleVisibility(id, value, adminId);
     }
 
-    // 삭제
+    /**
+     * Delete the CMS content with the given id.
+     *
+     * Delegates deletion to the CmsContentService; no content is returned.
+     *
+     * @param id the identifier of the CMS content to delete
+     */
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         service.delete(id);
