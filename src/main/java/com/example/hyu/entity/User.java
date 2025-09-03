@@ -8,7 +8,7 @@ import lombok.*;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
 @Entity
-@Table(name = "user",
+@Table(name = "users",
         indexes = {
                 @Index(name = "idx_user_email", columnList = "이메일", unique = true)
         }
@@ -17,7 +17,7 @@ public class User extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "유저아이디")
+    @Column(name = "id")
     private Long id;
 
     @Column(name = "비밀번호", length = 255)
