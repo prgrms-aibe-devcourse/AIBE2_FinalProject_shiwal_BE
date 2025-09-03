@@ -22,6 +22,14 @@ public class CmsContentServiceImpl implements CmsContentService {
 
     private final CmsContentRepository repo;
 
+    /**
+     * Convert a CmsContent entity to a CmsContentResponse DTO.
+     *
+     * @param c the source CmsContent entity
+     * @return a CmsContentResponse containing the entity's visible fields (id, category, title, text,
+     *         mediaType, duration, thumbnailUrl, visibility, publishedAt, createdAt, updatedAt,
+     *         createdBy, updatedBy)
+     */
     private CmsContentResponse toDto(CmsContent c) {
         return new CmsContentResponse(
                 c.getId(),
@@ -40,6 +48,17 @@ public class CmsContentServiceImpl implements CmsContentService {
         );
     }
 
+    /**
+     * Creates and persists a new CmsContent from the given request and returns its DTO.
+     *
+     * The method requires a non-blank groupKey in the request, applies defaults (visibility → PUBLIC when absent;
+     * publishedAt → now when absent), and sets created/updated metadata using the provided adminId.
+     *
+     * @param r request containing content fields; must include a non-blank `groupKey`
+     * @param adminId identifier of the admin performing the creation; used for createdBy/updatedBy
+     * @return the saved CmsContent converted to a CmsContentResponse
+     * @throws org.springframework.web.server.ResponseStatusException if `groupKey` is null or blank (HTTP 400)
+     */
     @Override
     public CmsContentResponse create(CmsContentRequest r, Long adminId) {
         // groupKey 필수
@@ -74,6 +93,13 @@ public class CmsContentServiceImpl implements CmsContentService {
         return toDto(repo.save(c));
     }
 
+    /**
+     * Retrieve a CmsContent by its id and return it as a CmsContentResponse.
+     *
+     * @param id the content entity id
+     * @return the content converted to a CmsContentResponse
+     * @throws org.springframework.web.server.ResponseStatusException with status 404 if no content exists for the given id
+     */
     @Override
     @Transactional(readOnly = true)
     public CmsContentResponse get(Long id) {
@@ -82,6 +108,18 @@ public class CmsContentServiceImpl implements CmsContentService {
         return toDto(c);
     }
 
+    /**
+     * Searches CMS content using optional filters and returns a page of DTOs.
+     *
+     * The method treats empty or blank `q` and `groupKey` values as null (no filter).
+     *
+     * @param q          full-text query string; blank/empty values are ignored
+     * @param category   content category filter (nullable)
+     * @param visibility visibility filter (nullable)
+     * @param groupKey   group key filter; blank/empty values are ignored
+     * @param pageable   pagination and sorting information
+     * @return a page of CmsContentResponse matching the provided filters
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<CmsContentResponse> search(String q,
@@ -94,6 +132,20 @@ public class CmsContentServiceImpl implements CmsContentService {
         return repo.search(query, category, visibility, gk, pageable).map(this::toDto);
     }
 
+    /**
+     * Partially updates an existing CmsContent and returns the saved representation.
+     *
+     * Only fields present (non-null) in the request are applied. If `groupKey` is provided it must not be blank.
+     * Always updates the entity's `updatedAt` and `updatedBy` metadata. If the resulting visibility is
+     * PUBLIC and `publishedAt` is not set, `publishedAt` will be set to now.
+     *
+     * @param id the ID of the content to update
+     * @param r the request containing fields to update; fields that are null are left unchanged
+     * @param adminId the identifier of the administrator performing the update (stored in `updatedBy`)
+     * @return the updated CmsContent mapped to CmsContentResponse
+     * @throws org.springframework.web.server.ResponseStatusException with HttpStatus.NOT_FOUND if no content exists with the given id
+     * @throws org.springframework.web.server.ResponseStatusException with HttpStatus.BAD_REQUEST if a provided `groupKey` is blank
+     */
     @Override
     public CmsContentResponse update(Long id, CmsContentRequest r, Long adminId) {
         CmsContent c = repo.findById(id)
@@ -125,6 +177,17 @@ public class CmsContentServiceImpl implements CmsContentService {
         return toDto(repo.save(c));
     }
 
+    /**
+     * Sets the visibility of a CmsContent identified by id and persists the change.
+     *
+     * If changing to PUBLIC and the content has no publishedAt timestamp, publishedAt is set to the current time.
+     * Also updates updatedAt and updatedBy for auditing and saves the entity.
+     *
+     * @param id the CmsContent primary key
+     * @param value the new visibility value to apply
+     * @param adminId identifier of the admin performing the change (stored in updatedBy)
+     * @throws org.springframework.web.server.ResponseStatusException with HTTP 404 when no content exists for the given id
+     */
     @Override
     public void toggleVisibility(Long id, Visibility value, Long adminId) {
         CmsContent c = repo.findById(id)
@@ -144,6 +207,14 @@ public class CmsContentServiceImpl implements CmsContentService {
         repo.save(c);
     }
 
+    /**
+     * Performs a soft delete of the CmsContent with the given id.
+     *
+     * Marks the entity as deleted by calling {@code markDeleted(null)} and persists the change.
+     *
+     * @param id the id of the CmsContent to soft-delete
+     * @throws org.springframework.web.server.ResponseStatusException with HTTP 404 if no entity exists for the given id
+     */
     @Override
     public void delete(Long id) {
         // 소프트 삭제: 엔티티 로딩 → 마킹 → 저장

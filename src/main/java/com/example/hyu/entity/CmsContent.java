@@ -88,13 +88,26 @@ public class CmsContent {
     @Column(name = "삭제자")
     private Long deletedBy;
 
-    // ===== 소프트 삭제/복구 편의 메서드 =====
+    /**
+     * Marks this entity as soft-deleted.
+     *
+     * Sets the deleted flag to true, records the current timestamp as the deletion time,
+     * and stores the identifier of the administrator who performed the deletion.
+     *
+     * @param adminId the ID of the administrator performing the deletion; may be null if unknown
+     */
     public void markDeleted(Long adminId) {
         this.deleted = true;
         this.deletedAt = Instant.now();
         this.deletedBy = adminId;
     }
 
+    /**
+     * Marks this entity as not deleted by clearing soft-delete flags and metadata.
+     *
+     * Sets `deleted` to false and clears `deletedAt` and `deletedBy`. This only updates the in-memory entity;
+     * changes must be persisted via the repository/EntityManager to take effect in the database.
+     */
     public void restore() {
         this.deleted = false;
         this.deletedAt = null;

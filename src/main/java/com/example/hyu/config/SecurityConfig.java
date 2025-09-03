@@ -11,6 +11,17 @@ import com.example.hyu.security.JwtProperties;
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
+    /**
+     * Configures and returns the application's SecurityFilterChain.
+     *
+     * Disables CSRF and currently permits unauthenticated access to /health, /auth/**,
+     * /api/admin/**, /static/** and, via the fallback rule, all other requests (no
+     * authentication enforced). The method returns the built SecurityFilterChain.
+     *
+     * @param http the HttpSecurity builder to configure
+     * @return the configured SecurityFilterChain
+     * @throws Exception if an error occurs while configuring or building the filter chain
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http

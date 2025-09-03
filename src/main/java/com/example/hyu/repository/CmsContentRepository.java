@@ -12,14 +12,30 @@ import java.util.Optional;
 
 public interface CmsContentRepository extends JpaRepository<CmsContent, Long> {
 
-    // 기본 카테고리 페이징 (삭제여부=false 만 자동으로 조회됨: @Where 덕분)
+    /**
+ * Retrieve a paginated list of CmsContent entries for the given category.
+ *
+ * Results respect the entity-level soft-delete filter (rows with 삭제여부 = true are excluded).
+ *
+ * @param category the CmsContent.Category to filter by
+ * @param pageable pagination and sorting information
+ * @return a page of CmsContent matching the category (empty if none)
+ */
     Page<CmsContent> findByCategory(Category category, Pageable pageable);
 
     /**
-     * 관리자 기본 검색(삭제되지 않은 것만)
-     * - 제목/문구 LIKE
-     * - 카테고리/공개범위/그룹키 필터
-     * - @Where(clause="삭제여부=false")가 엔티티에 걸려 있으므로 soft-deleted는 자동 제외
+     * Admin search for non-deleted CmsContent with optional text and field filters, returning a paginated result.
+     *
+     * Performs a case-insensitive partial match of `q` against title and text, and optionally filters by
+     * category, visibility, and exact groupKey. The entity-level soft-delete filter (@Where clause) excludes
+     * deleted rows automatically.
+     *
+     * @param q         free-text search applied to title and text (partial, case-insensitive); ignored when null or empty
+     * @param category  category to filter by; ignored when null
+     * @param visibility visibility to filter by; ignored when null
+     * @param groupKey  exact group key to filter by; ignored when null or empty
+     * @param pageable  pagination and sorting information
+     * @return a page of CmsContent matching the provided criteria (empty if none)
      */
     @Query("""
         SELECT c
@@ -40,9 +56,20 @@ public interface CmsContentRepository extends JpaRepository<CmsContent, Long> {
     );
 
     /**
-     * 관리자 "삭제 포함 조회" (soft-deleted 포함)
-     * - 엔티티의 @Where가 적용되지 않도록 NativeQuery 사용
-     * - includeDeleted=true 이면 모두, false면 삭제되지 않은 것만
+     * Admin search across CMS contents that can optionally include soft-deleted rows.
+     *
+     * <p>Performs a case-insensitive substring search on title and text when {@code q} is provided,
+     * and can filter by category, visibility, and group key. This method uses a native SQL query
+     * (bypassing the entity-level {@code @Where} soft-delete filter) — when {@code includeDeleted}
+     * is true results include deleted rows; when false only rows with 삭제여부 = FALSE are returned.
+     *
+     * @param q            optional full-text query applied to title and text (case-insensitive substring)
+     * @param category     optional category filter — pass the enum name as a String (e.g. "MEDITATION")
+     * @param visibility   optional visibility filter — pass the enum name as a String (e.g. "PUBLIC")
+     * @param groupKey     optional group key; empty or null means no group filtering
+     * @param includeDeleted if true include soft-deleted rows; if false exclude them
+     * @param pageable     pagination information
+     * @return a page of CmsContent matching the provided filters, ordered by created DESC then content id DESC
      */
     @Query(value = """
         SELECT *
@@ -78,7 +105,12 @@ public interface CmsContentRepository extends JpaRepository<CmsContent, Long> {
     );
 
     /**
-     * 단건 조회(삭제 포함). 복구/감사 등 관리용.
+     * Find a CmsContent by its content ID, including soft-deleted rows.
+     *
+     * This query bypasses the entity-level soft-delete filter and returns a content record regardless of its 삭제여부 value — intended for admin operations such as recovery or auditing.
+     *
+     * @param id the 콘텐츠 ID of the content to retrieve
+     * @return an Optional containing the matching CmsContent, or empty if not found
      */
     @Query(value = "SELECT * FROM cms_contents WHERE `콘텐츠 ID` = :id", nativeQuery = true)
     Optional<CmsContent> findByIdIncludingDeleted(@Param("id") Long id);

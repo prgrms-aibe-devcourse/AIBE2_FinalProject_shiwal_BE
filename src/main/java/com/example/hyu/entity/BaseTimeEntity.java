@@ -22,6 +22,11 @@ public abstract class BaseTimeEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    /**
+     * JPA lifecycle callback invoked before the entity is persisted.
+     *
+     * If the creation or update timestamps are unset, assigns both to the current instant.
+     */
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();
@@ -29,11 +34,28 @@ public abstract class BaseTimeEntity {
         if (updatedAt == null) updatedAt = now;
     }
 
+    /**
+     * JPA lifecycle callback run before the entity is updated.
+     *
+     * Sets the entity's `updatedAt` timestamp to the current instant.
+     */
     @PreUpdate
     protected void onUpdate() {
         updatedAt = Instant.now();
     }
 
-    public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
+    /**
+ * Returns the entity's creation timestamp.
+ *
+ * <p>The value is mapped to the `created_at` column and is populated when the entity is persisted.
+ *
+ * @return the creation Instant (non-null after the entity has been persisted)
+ */
+public Instant getCreatedAt() { return createdAt; }
+    /**
+ * Returns the timestamp of the last modification.
+ *
+ * @return the last-modified timestamp as an {@link Instant}; after the entity has been persisted, this value will be set and non-null
+ */
+public Instant getUpdatedAt() { return updatedAt; }
 }
