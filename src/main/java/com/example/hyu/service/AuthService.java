@@ -2,9 +2,9 @@ package com.example.hyu.service;
 
 import com.example.hyu.dto.user.UserAuthResponse;
 import com.example.hyu.dto.user.UserLoginRequest;
+import com.example.hyu.dto.user.UserMapper;
 import com.example.hyu.dto.user.UserResponse;
 import com.example.hyu.dto.user.UserSignupRequest;
-import com.example.hyu.dto.user.UserMapper;
 import com.example.hyu.entity.User;
 import com.example.hyu.entity.UserLogin;
 import com.example.hyu.repository.UserLoginRepository;
@@ -27,9 +27,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
-    /**
-     * 회원가입
-     */
+    /** 회원가입 */
     @Transactional
     public UserResponse signup(UserSignupRequest req) {
         if (userRepository.existsByEmail(req.email())) {
@@ -48,9 +46,7 @@ public class AuthService {
         return UserMapper.toResponse(user);
     }
 
-    /**
-     * 로그인 + 로그인 기록 저장
-     */
+    /** 로그인 + JWT 발급 + 로그인기록 저장 */
     @Transactional
     public UserAuthResponse login(UserLoginRequest req, HttpServletRequest httpReq) {
         User user = userRepository.findByEmail(req.email())
@@ -60,21 +56,20 @@ public class AuthService {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        // 토큰 발급
-        long validityMillis = 1000L * 60 * 60; // 1시간
-        String token = jwtTokenProvider.createToken(user.getId(), user.getRole());
+        // 이메일 포함하여 토큰 발급 (팀원 요구사항)
+        String token = jwtTokenProvider.createToken(user.getId(), user.getRole(), user.getEmail());
 
-        // 로그인 기록 저장
+        // 로그인 이력 적재 (ManyToOne 매핑 기준)
         UserLogin loginLog = UserLogin.builder()
                 .loggedAt(Instant.now())
                 .ip(extractClientIp(httpReq))
                 .field(null)
-                .user(user)   // @ManyToOne 매핑한 경우
+                .user(user)
                 .build();
-
         userLoginRepository.save(loginLog);
 
-        return UserAuthResponse.bearer(token, validityMillis / 1000); // 초 단위 만료 시간
+        long expiresInSec = jwtTokenProvider.getValidityMillis() / 1000;
+        return UserAuthResponse.bearer(token, expiresInSec);
     }
 
     private String extractClientIp(HttpServletRequest req) {
