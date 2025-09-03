@@ -3,31 +3,33 @@ package com.example.hyu.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 @Entity
-@Table(name = "assessment_answers")
+@Table(name="assessment_answers")
+@Getter
+@NoArgsConstructor(access=AccessLevel.PROTECTED)
+@AllArgsConstructor
+@Builder
 public class AssessmentAnswer {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "응답 ID")
-    private Long id;
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    private Long id;  // PK, 응답 고유번호
 
-    @Column(name = "점수")
-    private Integer score;
+    @Column(nullable=false)
+    private Integer selectedValue;
+    // 사용자가 선택한 값 (0~3)
 
-    @Column(name = "원시응답", length = 100)
+    @Column(length=100)
     private String rawAnswer;
+    // 원시 응답 (선택지 라벨 등 저장하고 싶으면 사용, 필수 아님)
 
-    @Column(name = "제출 ID", nullable = false)
-    private Long submissionId; // FK → AssessmentSubmission
+    @ManyToOne(fetch=FetchType.LAZY)
+    @JoinColumn(name="submission_id", nullable=false)
+    private AssessmentSubmission submission;
+    // 이 응답이 속한 검사 제출(Submission)
 
-    @Column(name = "문항 ID", nullable = false)
-    private Long questionId; // FK → AssessmentQuestion
-
-    @Column(name = "선택지 ID", nullable = false)
-    private Long optionId; // FK → AssessmentOption
+    @ManyToOne(fetch=FetchType.LAZY)
+    @JoinColumn(name="question_id", nullable=false)
+    private AssessmentQuestion question;
+    // 어떤 문항에 대한 응답인지
 }
