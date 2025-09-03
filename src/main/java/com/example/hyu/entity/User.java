@@ -10,30 +10,28 @@ import lombok.*;
 @Entity
 @Table(name = "users",
         indexes = {
-                @Index(name = "idx_user_email", columnList = "이메일", unique = true)
+                @Index(name = "idx_user_email", columnList = "email", unique = true)
         }
 )
 public class User extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
+    @Column(name = "id")         // PK
     private Long id;
 
-    @Column(name = "비밀번호", length = 255)
+    @Column(name = "password", length = 255, nullable = false)
     private String password;
 
-    @Column(name = "이메일", length = 255)
+    @Column(name = "email", length = 255, nullable = false)
     private String email;
 
-    @Column(name = "이름", length = 255)
+    @Column(name = "name", length = 255, nullable = false)
     private String name;
 
-    @Column(name = "닉네임", length = 100)
+    @Column(name = "nickname", length = 100, nullable = false)
     private String nickname;
 
-    @Column(name = "역할", length = 50)
-    private String role; // USER / ADMIN
-
-    // 원본 스키마의 '생성일'은 기본값 CURRENT_TIMESTAMP 의미였음 → Auditing으로 대체됨.
+    @Column(name = "role", length = 50, nullable = false) // USER / ADMIN
+    private String role;
 }

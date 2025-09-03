@@ -1,9 +1,9 @@
-package com.example.hyu.core.auth.dto;
+package com.example.hyu.dto.user;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record LoginRequest(
-        @NotBlank @Email String email,
+public record UserLoginRequest(
+        @Email @NotBlank String email,
         @NotBlank String password
 ) {}
