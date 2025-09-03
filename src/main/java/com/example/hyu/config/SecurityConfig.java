@@ -1,43 +1,78 @@
 package com.example.hyu.config;
 
+import com.example.hyu.security.CustomAccessDeniedHandler;
+import com.example.hyu.security.JwtAuthenticationEntryPoint;
+import com.example.hyu.security.JwtAuthenticationFilter;
+import com.example.hyu.security.JwtProperties;
+import com.example.hyu.security.JwtTokenProvider;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import com.example.hyu.security.JwtProperties;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider provider) {
+        return new JwtAuthenticationFilter(provider); // 토큰 유효하면 컨텍스트 세팅, 아니면 무시
+    }
+
+    @Bean
+    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() { return new JwtAuthenticationEntryPoint(); }
+
+    @Bean
+    public CustomAccessDeniedHandler customAccessDeniedHandler() { return new CustomAccessDeniedHandler(); }
+
+    @Bean
+    public SecurityFilterChain filterChain(
+            HttpSecurity http,
+            JwtAuthenticationFilter jwtFilter,
+            JwtAuthenticationEntryPoint entryPoint,
+            CustomAccessDeniedHandler denied
+    ) throws Exception {
+
         http
-                // Postman/프론트 초기 통신 편의를 위해 CSRF 일단 비활성화
                 .csrf(csrf -> csrf.disable())
+                .httpBasic(b -> b.disable())
+                .formLogin(f -> f.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(
-                                "/health",
-                                "/auth/**",
-                                "/api/admin/**",
-                                "/static/**"
-                        ).permitAll()
-                        .anyRequest().permitAll()
-                );
+                                // ✅ 완전 공개 경로
+                                .requestMatchers(
+                                        "/",
+                                        "/index.html",
+                                        "/health",
+                                        "/auth/**",
+                                        "/api/contents/**",     // 콘텐츠 열람은 전부 공개
+                                        "/auth-test.html",
+                                        "/jwt-check.html",
+                                        "/static/**",
+                                        "/favicon.ico"
+                                ).permitAll()
 
-        // TODO: 보호 API 생기면 아래처럼 전환
-        // .authorizeHttpRequests(auth -> auth
-        //     .requestMatchers("/health", "/auth/**", "/static/**").permitAll()
-        //     .requestMatchers("/api/admin/**").hasRole("ADMIN")
-        //     .anyRequest().authenticated()
-        // )
-        // .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        // .exceptionHandling(e -> e
-        //     .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-        //     .accessDeniedHandler(customAccessDeniedHandler)
-        // );
+                                // ✅ 관리자 전용
+                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                                .anyRequest().permitAll()
+
+                        // ⬇︎ 만약 일부 쓰기만 보호하고 싶다면 위 줄 대신 아래 두 줄 사용:
+                        // .requestMatchers(HttpMethod.GET, "/**").permitAll()
+                        // .anyRequest().authenticated()
+                )
+
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(entryPoint) // 401
+                        .accessDeniedHandler(denied)          // 403
+                )
+
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
