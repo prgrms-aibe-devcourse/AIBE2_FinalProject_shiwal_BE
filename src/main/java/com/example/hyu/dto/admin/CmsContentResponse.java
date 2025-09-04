@@ -16,5 +16,8 @@ public record CmsContentResponse(
         Instant createdAt,
         Instant updatedAt,
         Long createdBy,
-        Long updatedBy
+        Long updatedBy,
+        boolean deleted,
+        Instant deletedAt,
+        Long deletedBy
 ) {}

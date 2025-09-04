@@ -22,6 +22,7 @@ public interface HealingContentRepository extends JpaRepository<CmsContent, Long
          AND (:q IS NULL OR :q = '' OR
               LOWER(c.title) LIKE LOWER(CONCAT('%', :q, '%')) OR
               LOWER(c.text)  LIKE LOWER(CONCAT('%', :q, '%')))
+         AND c.deleted = false
        ORDER BY COALESCE(c.publishedAt, c.createdAt) DESC, c.id DESC
     """)
     List<CmsContent> fetchFirstPage(@Param("vis") Visibility vis,
@@ -44,6 +45,7 @@ public interface HealingContentRepository extends JpaRepository<CmsContent, Long
               COALESCE(c.publishedAt, c.createdAt) < :cursorPublishedAt
               OR (COALESCE(c.publishedAt, c.createdAt) = :cursorPublishedAt AND c.id < :cursorId)
          )
+         AND c.deleted = false
        ORDER BY COALESCE(c.publishedAt, c.createdAt) DESC, c.id DESC
     """)
     List<CmsContent> fetchAfterCursor(@Param("vis") Visibility vis,

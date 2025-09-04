@@ -73,13 +73,16 @@ public interface CmsContentRepository extends JpaRepository<CmsContent, Long> {
             @Param("category") String category,     // Native에 enum 문자열 전달 (e.g. "MEDITATION")
             @Param("visibility") String visibility, // Native에 enum 문자열 전달 (e.g. "PUBLIC")
             @Param("groupKey") String groupKey,
-            @Param("includeDeleted") boolean includeDeleted,
+            @Param("deleted") Boolean deleted,
             Pageable pageable
     );
 
     /**
      * 단건 조회(삭제 포함). 복구/감사 등 관리용.
      */
-    @Query(value = "SELECT * FROM cms_contents WHERE `콘텐츠 ID` = :id", nativeQuery = true)
-    Optional<CmsContent> findByIdIncludingDeleted(@Param("id") Long id);
+    @Query(
+            value = "SELECT * FROM cms_contents WHERE `콘텐츠 ID` = :id",
+            nativeQuery = true
+    )
+    Optional<CmsContent> findAnyById(@Param("id") Long id);
 }

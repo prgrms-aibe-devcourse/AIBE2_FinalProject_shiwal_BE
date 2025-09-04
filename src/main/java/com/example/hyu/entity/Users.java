@@ -13,7 +13,7 @@ import lombok.*;
                 @Index(name = "idx_user_email", columnList = "email", unique = true)
         }
 )
-public class User extends BaseTimeEntity {
+public class Users extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

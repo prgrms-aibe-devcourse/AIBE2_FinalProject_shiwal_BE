@@ -18,7 +18,6 @@ import java.time.Instant;
         "UPDATE cms_contents " +
                 "SET `삭제여부` = true, `삭제시각` = CURRENT_TIMESTAMP, `삭제자` = NULL " +  // 필요시 삭제자는 서비스에서 세팅
                 "WHERE `콘텐츠 ID` = ?")
-@Where(clause = "`삭제여부` = false")
 public class CmsContent {
 
     public enum Category { MUSIC, MEDITATION, MOOD_BOOST }
