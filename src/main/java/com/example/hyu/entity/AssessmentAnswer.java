@@ -29,7 +29,7 @@ public class AssessmentAnswer {
     // 이 응답이 속한 검사 제출(Submission)
 
     @ManyToOne(fetch=FetchType.LAZY)
-    @JoinColumn(name="question_id", referencedColumnName = "문항 id", nullable=false)
+    @JoinColumn(name="question_id", nullable=false)
     private AssessmentQuestion question;
     // 어떤 문항에 대한 응답인지
 }

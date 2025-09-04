@@ -17,7 +17,6 @@ public class AssessmentQuestion {
 
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
-    @Column(name = "문항 id")
     private Long id;  // PK, 문항 고유번호
 
     @ManyToOne(fetch=FetchType.LAZY)
