@@ -34,7 +34,7 @@ public class AssessmentSubmission {
     private Instant submittedAt;
     // 제출 시각
 
-    @Column(name="user_id", nullable=false)
+    @Column(name="user_id")
     private Long userId;
     // 응답한 사용자 식별자 (User 엔티티 없으면 Long으로 유지)
 
@@ -45,5 +45,9 @@ public class AssessmentSubmission {
 
     @PrePersist
     void pre(){ if(this.submittedAt==null) this.submittedAt = Instant.now(); }
-    // 저장 시 제출시각 자동 입력
+
+    public void applyResult(int total, RiskLevel risk) {
+        this.totalScore = total;
+        this.risk = risk;
+    }
 }

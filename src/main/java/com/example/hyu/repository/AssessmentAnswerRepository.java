@@ -7,5 +7,7 @@ import java.util.List;
 
 // 문항별 응답
 public interface AssessmentAnswerRepository extends JpaRepository<AssessmentAnswer, Long> {
+
     List<AssessmentAnswer> findBySubmissionId(Long submissionId);
 }
+
