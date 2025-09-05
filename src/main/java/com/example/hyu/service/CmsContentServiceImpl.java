@@ -6,6 +6,7 @@ import com.example.hyu.entity.CmsContent;
 import com.example.hyu.entity.CmsContent.Visibility;
 import com.example.hyu.repository.CmsContentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -36,17 +37,15 @@ public class CmsContentServiceImpl implements CmsContentService {
                 c.getCreatedAt(),
                 c.getUpdatedAt(),
                 c.getCreatedBy(),
-                c.getUpdatedBy()
+                c.getUpdatedBy(),
+                c.isDeleted(),
+                c.getDeletedAt(),
+                c.getDeletedBy()
         );
     }
 
     @Override
     public CmsContentResponse create(CmsContentRequest r, Long adminId) {
-        // groupKey 필수
-        if (r.groupKey() == null || r.groupKey().isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "groupKey is required");
-        }
-
         Instant now = Instant.now();
 
         // visibility 기본값: PUBLIC
@@ -54,6 +53,9 @@ public class CmsContentServiceImpl implements CmsContentService {
 
         // publishedAt 기본값: now (즉시 공개)
         Instant pub = (r.publishedAt() != null) ? r.publishedAt() : now;
+
+        //groupKey 정규화 : 빈문자/공백이면 null로
+        String normalizedGroup = (r.groupKey() == null || r.groupKey().isBlank()) ? null : r.groupKey().trim();
 
         CmsContent c = CmsContent.builder()
                 .category(r.category())
@@ -77,7 +79,7 @@ public class CmsContentServiceImpl implements CmsContentService {
     @Override
     @Transactional(readOnly = true)
     public CmsContentResponse get(Long id) {
-        CmsContent c = repo.findById(id)
+        CmsContent c = repo.findAnyById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found: " + id));
         return toDto(c);
     }
@@ -87,6 +89,7 @@ public class CmsContentServiceImpl implements CmsContentService {
     public Page<CmsContentResponse> search(String q,
                                            CmsContent.Category category,
                                            Visibility visibility,
+                                           Boolean deleted,
                                            String groupKey,
                                            Pageable pageable) {
         String query = (q == null || q.isBlank()) ? null : q.trim();
@@ -100,11 +103,12 @@ public class CmsContentServiceImpl implements CmsContentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found: " + id));
 
         if (r.category() != null)      c.setCategory(r.category());
+
+        //groupKey 업데이트 : null이면 무시, 빈문자면 null로 세팅
         if (r.groupKey() != null) {
-            if (r.groupKey().isBlank()) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "groupKey cannot be blank");
-            }
-            c.setGroupKey(r.groupKey());
+            String normalized =
+                    (r.groupKey().isBlank()) ? null : r.groupKey().trim();
+            c.setGroupKey(normalized);
         }
         if (r.title() != null)         c.setTitle(r.title());
         if (r.text() != null)          c.setText(r.text());
@@ -146,11 +150,16 @@ public class CmsContentServiceImpl implements CmsContentService {
 
     @Override
     public void delete(Long id) {
-        // 소프트 삭제: 엔티티 로딩 → 마킹 → 저장
         CmsContent c = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found: " + id));
-        // 삭제자 기록을 남기고 싶으면 컨트롤러에서 adminId 받아서 markDeleted(adminId)로 넘겨.
-        c.markDeleted(null);
+
+        if (c.isDeleted()) return; // 멱등
+
+        // ✅ 삭제자 기록 포함 (컨트롤러에서 adminId 받아서 전달)
+        c.setDeleted(true);
+        c.setDeletedAt(Instant.now());
+        // c.setDeletedBy(adminId);  // ← adminId를 서비스에 전달하면 여기 세팅
+        c.setUpdatedAt(Instant.now());
         repo.save(c);
     }
 }

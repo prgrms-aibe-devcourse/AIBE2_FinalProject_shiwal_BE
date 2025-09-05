@@ -5,7 +5,7 @@ import com.example.hyu.dto.user.UserLoginRequest;
 import com.example.hyu.dto.user.UserMapper;
 import com.example.hyu.dto.user.UserResponse;
 import com.example.hyu.dto.user.UserSignupRequest;
-import com.example.hyu.entity.User;
+import com.example.hyu.entity.Users;
 import com.example.hyu.entity.UserLogin;
 import com.example.hyu.repository.UserLoginRepository;
 import com.example.hyu.repository.UserRepository;
@@ -34,7 +34,7 @@ public class AuthService {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
 
-        User user = User.builder()
+        Users user = Users.builder()
                 .email(req.email())
                 .password(passwordEncoder.encode(req.password()))
                 .name(req.name())
@@ -49,7 +49,7 @@ public class AuthService {
     /** 로그인 + JWT 발급 + 로그인기록 저장 */
     @Transactional
     public UserAuthResponse login(UserLoginRequest req, HttpServletRequest httpReq) {
-        User user = userRepository.findByEmail(req.email())
+        Users user = userRepository.findByEmail(req.email())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {

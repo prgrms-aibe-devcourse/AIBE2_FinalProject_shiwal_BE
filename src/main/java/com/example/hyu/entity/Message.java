@@ -26,7 +26,7 @@ public class Message {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "발신자사용자아이디", foreignKey = @ForeignKey(name = "FK_messages_user"))
-    private User sender;
+    private Users sender;
 
     @Column(name = "AI여부", nullable = false)
     @Builder.Default
