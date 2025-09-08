@@ -5,10 +5,11 @@ import com.example.hyu.security.JwtAuthenticationEntryPoint;
 import com.example.hyu.security.JwtAuthenticationFilter;
 import com.example.hyu.security.JwtProperties;
 import com.example.hyu.security.JwtTokenProvider;
+import com.example.hyu.service.TokenStoreService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -18,9 +19,18 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableConfigurationProperties(JwtProperties.class)
 public class SecurityConfig {
 
+    /**
+     * 개발 중엔 true(전체 공개), 운영 전환 시 false(보호 모드)
+     * application.yml에 security.open-mode: true/false 로 제어
+     */
+    @Value("${security.open-mode:true}")
+    private boolean openMode;
+
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider provider) {
-        return new JwtAuthenticationFilter(provider); // 토큰 유효하면 컨텍스트 세팅, 아니면 무시
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider provider,
+                                                           TokenStoreService tokenStoreService) {
+        // ★ 블랙리스트(JTI) 확인을 위해 TokenStoreService 주입한 필터 사용
+        return new JwtAuthenticationFilter(provider, tokenStoreService);
     }
 
     @Bean
@@ -30,12 +40,10 @@ public class SecurityConfig {
     public CustomAccessDeniedHandler customAccessDeniedHandler() { return new CustomAccessDeniedHandler(); }
 
     @Bean
-    public SecurityFilterChain filterChain(
-            HttpSecurity http,
-            JwtAuthenticationFilter jwtFilter,
-            JwtAuthenticationEntryPoint entryPoint,
-            CustomAccessDeniedHandler denied
-    ) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           JwtAuthenticationFilter jwtFilter,
+                                           JwtAuthenticationEntryPoint entryPoint,
+                                           CustomAccessDeniedHandler denied) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -43,35 +51,36 @@ public class SecurityConfig {
                 .formLogin(f -> f.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .authorizeHttpRequests(auth -> auth
-                                // ✅ 완전 공개 경로
-                                .requestMatchers(
-                                        "/",
-                                        "/index.html",
-                                        "/health",
-                                        "/auth/**",
-                                        "/api/contents/**",     // 콘텐츠 열람은 전부 공개
-                                        "/auth-test.html",
-                                        "/jwt-check.html",
-                                        "/static/**",
-                                        "/favicon.ico"
-                                ).permitAll()
+                .authorizeHttpRequests(auth -> {
+                    auth
+                            // 공개 리소스
+                            .requestMatchers(
+                                    "/", "/index.html",
+                                    "/health",
+                                    "/auth/**",
+                                    "/api/contents/**",
+                                    "/auth-test.html", "/jwt-check.html",
+                                    "/static/**", "/favicon.ico",
+                                    "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html"
+                            ).permitAll()
+                            // 관리자 전용
+                            .requestMatchers("/api/admin/**").hasRole("ADMIN");
 
-                                // ✅ 관리자 전용
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                                .anyRequest().permitAll()
-
-                        // ⬇︎ 만약 일부 쓰기만 보호하고 싶다면 위 줄 대신 아래 두 줄 사용:
-                        // .requestMatchers(HttpMethod.GET, "/**").permitAll()
-                        // .anyRequest().authenticated()
-                )
+                    if (openMode) {
+                        // ★ 개발 모드: 나머지도 전부 공개
+                        auth.anyRequest().permitAll();
+                    } else {
+                        // ★ 보호 모드: 그 외는 인증 필요
+                        auth.anyRequest().authenticated();
+                    }
+                })
 
                 .exceptionHandling(e -> e
                         .authenticationEntryPoint(entryPoint) // 401
                         .accessDeniedHandler(denied)          // 403
                 )
 
+                // JWT 검증 필터 연결 (UsernamePasswordAuthenticationFilter 앞)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
