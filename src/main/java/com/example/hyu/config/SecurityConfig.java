@@ -57,8 +57,20 @@ public class SecurityConfig {
                                         "/auth-test.html",
                                         "/jwt-check.html",
                                         "/static/**",
-                                        "/favicon.ico"
+                                        "/favicon.ico",
+                                        "/api/public/password-reset/**"
                                 ).permitAll()
+
+                                // 자가진단평가: 공개 엔드포인트만 선별 허용
+                                .requestMatchers(HttpMethod.GET,  "/api/assessments").permitAll()                     // 목록
+                                .requestMatchers(HttpMethod.GET,  "/api/assessments/by-code/**").permitAll()          // 코드 단건
+                                .requestMatchers(HttpMethod.GET,  "/api/assessments/*/questions").permitAll()         // 문항 조회
+                                .requestMatchers(HttpMethod.PATCH,"/api/assessments/*/answers").permitAll()           // 답변 업서트(비로그인 허용)
+                                .requestMatchers(HttpMethod.POST, "/api/assessments/*/submit").permitAll()            // 제출 확정(비로그인 허용)
+
+                                /* ---- 인증 필요 ---- */
+                                // 히스토리/최신 결과 는 로그인 필요
+                                .requestMatchers(HttpMethod.GET, "/api/assessments/*/results/**").authenticated()
 
                                 // ✅ 관리자 전용
                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")

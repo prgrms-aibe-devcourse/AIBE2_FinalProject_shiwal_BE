@@ -10,7 +10,10 @@ import lombok.*;
 @NoArgsConstructor(access=AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class AssessmentQuestion {
+@org.hibernate.annotations.Check(constraints = "order_no >= 1") //문항 순서 값 검증(1 이상부터)
+@ToString(exclude = "assessment") //toString에서 parent(assessment) 제외 -> 순환 방지
+@EqualsAndHashCode(of = "id") //동등성/해시 기준을 id로 고정
+public class AssessmentQuestion extends BaseTimeEntity{ //검사에 속한 문항들을 나타내는 엔티티
 
     // 문항 유형 → 여기서는 SCALE(0~3 점수)만 사용
     public enum QuestionType { SCALE }
@@ -26,7 +29,6 @@ public class AssessmentQuestion {
     @Column(name="order_no", nullable=false)
     private Integer orderNo;  // 문항 순서 번호 (1,2,3…)
 
-    @Lob
     @Column(nullable=false)
     private String text;  // 질문 문구
 

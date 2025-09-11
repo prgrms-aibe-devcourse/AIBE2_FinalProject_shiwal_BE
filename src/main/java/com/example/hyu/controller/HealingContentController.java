@@ -1,7 +1,7 @@
 package com.example.hyu.controller;
 
-import com.example.hyu.dto.user.HealingContentDto;
-import com.example.hyu.dto.user.HealingContentListResponse;
+import com.example.hyu.dto.HealingContent.HealingContentDto;
+import com.example.hyu.dto.HealingContent.HealingContentListResponse;
 import com.example.hyu.entity.CmsContent;
 import com.example.hyu.service.HealingContentService;
 import lombok.RequiredArgsConstructor;

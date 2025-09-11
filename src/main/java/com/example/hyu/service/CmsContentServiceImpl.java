@@ -1,12 +1,11 @@
 package com.example.hyu.service;
 
-import com.example.hyu.dto.admin.CmsContentRequest;
-import com.example.hyu.dto.admin.CmsContentResponse;
+import com.example.hyu.dto.HealingContent.CmsContentRequest;
+import com.example.hyu.dto.HealingContent.CmsContentResponse;
 import com.example.hyu.entity.CmsContent;
 import com.example.hyu.entity.CmsContent.Visibility;
-import com.example.hyu.repository.CmsContentRepository;
+import com.example.hyu.repository.HealingContent.CmsContentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -22,6 +21,8 @@ import java.time.Instant;
 public class CmsContentServiceImpl implements CmsContentService {
 
     private final CmsContentRepository repo;
+
+    Instant now = Instant.now();
 
     private CmsContentResponse toDto(CmsContent c) {
         return new CmsContentResponse(
@@ -46,7 +47,6 @@ public class CmsContentServiceImpl implements CmsContentService {
 
     @Override
     public CmsContentResponse create(CmsContentRequest r, Long adminId) {
-        Instant now = Instant.now();
 
         // visibility 기본값: PUBLIC
         Visibility vis = (r.visibility() == null) ? Visibility.PUBLIC : r.visibility();
@@ -59,7 +59,7 @@ public class CmsContentServiceImpl implements CmsContentService {
 
         CmsContent c = CmsContent.builder()
                 .category(r.category())
-                .groupKey(r.groupKey())
+                .groupKey(normalizedGroup)
                 .title(r.title())
                 .text(r.text())
                 .mediaType(r.mediaType())
@@ -67,8 +67,6 @@ public class CmsContentServiceImpl implements CmsContentService {
                 .thumbnailUrl(r.thumbnailUrl())
                 .visibility(vis)
                 .publishedAt(pub)
-                .createdAt(now)
-                .updatedAt(now)
                 .createdBy(adminId)
                 .updatedBy(adminId)
                 .build();
@@ -89,11 +87,23 @@ public class CmsContentServiceImpl implements CmsContentService {
     public Page<CmsContentResponse> search(String q,
                                            CmsContent.Category category,
                                            Visibility visibility,
-                                           Boolean deleted,
+                                           Boolean includeDeleted,
                                            String groupKey,
                                            Pageable pageable) {
         String query = (q == null || q.isBlank()) ? null : q.trim();
         String gk = (groupKey == null || groupKey.isBlank()) ? null : groupKey.trim();
+
+        if(Boolean.TRUE.equals(includeDeleted)){
+            //삭제 포함 검색 -> native 쿼리 사용
+            return repo.searchIncludingDeleted(
+                    query,
+                    category != null ? category.name() : null,
+                    visibility != null ? visibility.name() : null,
+                    gk,
+                    true,
+                    pageable
+            ).map(this::toDto);
+        }
         return repo.search(query, category, visibility, gk, pageable).map(this::toDto);
     }
 
@@ -103,13 +113,7 @@ public class CmsContentServiceImpl implements CmsContentService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found: " + id));
 
         if (r.category() != null)      c.setCategory(r.category());
-
-        //groupKey 업데이트 : null이면 무시, 빈문자면 null로 세팅
-        if (r.groupKey() != null) {
-            String normalized =
-                    (r.groupKey().isBlank()) ? null : r.groupKey().trim();
-            c.setGroupKey(normalized);
-        }
+        if (r.groupKey() != null)      c.setGroupKey(r.groupKey().isBlank() ? null : r.groupKey().trim());
         if (r.title() != null)         c.setTitle(r.title());
         if (r.text() != null)          c.setText(r.text());
         if (r.mediaType() != null)     c.setMediaType(r.mediaType());
@@ -118,7 +122,6 @@ public class CmsContentServiceImpl implements CmsContentService {
         if (r.visibility() != null)    c.setVisibility(r.visibility());
         if (r.publishedAt() != null)   c.setPublishedAt(r.publishedAt());
 
-        c.setUpdatedAt(Instant.now());
         c.setUpdatedBy(adminId);
 
         // 공개 전환인데 공개시각이 비어있으면 now로
@@ -134,17 +137,13 @@ public class CmsContentServiceImpl implements CmsContentService {
         CmsContent c = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Not found: " + id));
 
-        Instant now = Instant.now();
         c.setVisibility(value);
+        c.setUpdatedBy(adminId);
 
         // PUBLIC 전환 시 공개시각 보정
         if (value == Visibility.PUBLIC && c.getPublishedAt() == null) {
             c.setPublishedAt(now);
         }
-
-        c.setUpdatedAt(now);
-        c.setUpdatedBy(adminId);
-
         repo.save(c);
     }
 
@@ -158,8 +157,6 @@ public class CmsContentServiceImpl implements CmsContentService {
         // ✅ 삭제자 기록 포함 (컨트롤러에서 adminId 받아서 전달)
         c.setDeleted(true);
         c.setDeletedAt(Instant.now());
-        // c.setDeletedBy(adminId);  // ← adminId를 서비스에 전달하면 여기 세팅
-        c.setUpdatedAt(Instant.now());
         repo.save(c);
     }
 }

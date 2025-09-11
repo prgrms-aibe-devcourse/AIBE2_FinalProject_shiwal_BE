@@ -56,6 +56,25 @@ public class AuthService {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
+        //계정 상태 체크(정지/탈퇴 차단 + 자동해제)
+        Instant now = Instant.now();
+
+        //정지 만료 자동 해제
+        if(user.getState() == Users.UserState.SUSPENDED){
+            if(user.getSuspendUntil() != null && user.getSuspendUntil().isBefore(now)){
+                user.setState(Users.UserState.ACTIVE);
+                user.setSuspendUntil(null);
+            }else {
+                //아직 정지 중
+                String untilTxt = user.getSuspendUntil() != null ? user.getSuspendUntil().toString() : "until manual unlock";
+            }
+        }
+
+        //탈퇴 차단
+        if(user.getState() == Users.UserState.WITHDRAWN){
+            throw new IllegalStateException("ACCOUNT_WITHDRAWN");
+        }
+
         // 이메일 포함하여 토큰 발급 (팀원 요구사항)
         String token = jwtTokenProvider.createToken(user.getId(), user.getRole(), user.getEmail());
 

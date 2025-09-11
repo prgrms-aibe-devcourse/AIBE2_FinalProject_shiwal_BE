@@ -1,6 +1,7 @@
 package com.example.hyu.controller;
 
-import com.example.hyu.dto.admin.*;
+import com.example.hyu.dto.HealingContent.CmsContentRequest;
+import com.example.hyu.dto.HealingContent.CmsContentResponse;
 import com.example.hyu.entity.CmsContent.Category;
 import com.example.hyu.entity.CmsContent.Visibility;
 import com.example.hyu.security.AuthPrincipal;
@@ -9,6 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin/cms-contents")
 @RequiredArgsConstructor
 @Validated
-// @PreAuthorize("hasRole('ADMIN')") // ← 보안 붙일 때 활성화 (SecurityConfig에 @EnableMethodSecurity 필요)
+@PreAuthorize("hasRole('ADMIN')")
 public class CmsContentController {
 
     private final CmsContentService service;
@@ -41,7 +43,7 @@ public class CmsContentController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Category category,
             @RequestParam(required = false) Visibility visibility,
-            @RequestParam(required = false) Boolean deleted,
+            @RequestParam(required = false, name = "includeDeleted") Boolean includeDeleted,
             @RequestParam(required = false) String groupKey,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "12") int size,
@@ -52,7 +54,7 @@ public class CmsContentController {
                 ? Sort.Direction.ASC : Sort.Direction.DESC;
         Pageable pageable = PageRequest.of(page, size, Sort.by(dir, s[0]));
         //  service.search에 groupKey를 전달 (서비스 시그니처도 맞춰둬야 함)
-        return service.search(q, category, visibility, deleted, groupKey, pageable);
+        return service.search(q, category, visibility, includeDeleted, groupKey, pageable);
     }
 
     // 수정

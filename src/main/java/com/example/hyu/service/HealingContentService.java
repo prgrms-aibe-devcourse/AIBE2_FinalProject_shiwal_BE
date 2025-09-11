@@ -1,7 +1,7 @@
 package com.example.hyu.service;
 
-import com.example.hyu.dto.user.HealingContentDto;
-import com.example.hyu.dto.user.HealingContentListResponse;
+import com.example.hyu.dto.HealingContent.HealingContentDto;
+import com.example.hyu.dto.HealingContent.HealingContentListResponse;
 import com.example.hyu.entity.CmsContent;
 
 public interface HealingContentService {

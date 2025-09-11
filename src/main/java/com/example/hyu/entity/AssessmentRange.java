@@ -2,7 +2,6 @@ package com.example.hyu.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.Instant;
 
 @Entity
 @Table(name="assessment_ranges")
@@ -10,7 +9,8 @@ import java.time.Instant;
 @NoArgsConstructor(access=AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Builder
-public class AssessmentRange {
+@org.hibernate.annotations.Check(constraints = "min_score <= max_score")
+public class AssessmentRange { //사용자가 제출한 점수에 따라 사용자에게 보여줄 것을 나타내는 엔티티
 
     @Id
     @GeneratedValue(strategy=GenerationType.IDENTITY)
@@ -23,11 +23,11 @@ public class AssessmentRange {
 
     @Column(nullable=false)
     private Integer minScore;
-    // 구간 시작 점수 (포함)
+    // 구간 시작 (총점)점수 (포함)
 
     @Column(nullable=false)
     private Integer maxScore;
-    // 구간 끝 점수 (포함)
+    // 구간 끝 (총점)점수 (포함)
 
     @Enumerated(EnumType.STRING)
     @Column(nullable=false, length=20)
@@ -36,11 +36,11 @@ public class AssessmentRange {
 
     @Column(nullable=false, length=50)
     private String labelKo;
-    // 결과 레벨 이름 (예: "약함")
+    // 사용자에게 보여줄 결과 레벨 이름 (예: "약함")
 
     @Column(nullable=false, length=200)
     private String summaryKo;
-    // 짧은 설명 (예: "우울감이 낮습니다.")
+    // 설명 (예: "우울감이 낮습니다.")
 
     @Lob
     @Column(nullable=false)

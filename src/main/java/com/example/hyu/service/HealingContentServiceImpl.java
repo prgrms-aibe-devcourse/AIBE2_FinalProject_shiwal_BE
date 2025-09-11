@@ -1,11 +1,11 @@
 package com.example.hyu.service;
 
-import com.example.hyu.dto.user.HealingContentDto;
-import com.example.hyu.dto.user.HealingContentListResponse;
+import com.example.hyu.dto.HealingContent.HealingContentDto;
+import com.example.hyu.dto.HealingContent.HealingContentListResponse;
 import com.example.hyu.entity.CmsContent;
 import com.example.hyu.entity.CmsContent.Category;
 import com.example.hyu.entity.CmsContent.Visibility;
-import com.example.hyu.repository.HealingContentRepository;
+import com.example.hyu.repository.HealingContent.HealingContentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
