@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.example.hyu.security.AuthPrincipal;
 
 @RestController
 @RequiredArgsConstructor
@@ -19,15 +21,16 @@ public class ProfileController {
 
     @GetMapping("/me")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public ResponseEntity<ProfileResponse> me() {
-        Long userId = CurrentUser.id(); // JWT에서 userId를 principal로 세팅했다고 가정
-        return ResponseEntity.ok(profileService.getMyProfile(userId));
+    public ResponseEntity<ProfileResponse> me(@AuthenticationPrincipal AuthPrincipal me) {
+        return ResponseEntity.ok(profileService.getMyProfile(me.getUserId()));
     }
 
     @PutMapping("/me")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
-    public ResponseEntity<ProfileResponse> upsert(@RequestBody @Valid ProfileUpdateRequest req) {
-        Long userId = CurrentUser.id();
-        return ResponseEntity.ok(profileService.upsertMyProfile(userId, req));
+    public ResponseEntity<ProfileResponse> upsert(
+            @AuthenticationPrincipal AuthPrincipal me,
+            @RequestBody @Valid ProfileUpdateRequest req
+    ) {
+        return ResponseEntity.ok(profileService.upsertMyProfile(me.getUserId(), req));
     }
 }
