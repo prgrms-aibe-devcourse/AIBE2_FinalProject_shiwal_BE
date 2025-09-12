@@ -21,7 +21,7 @@ public class Report {
 
     public enum TargetType { POST, COMMENT, CONTENT, USER }
     public enum Reason { SPAM, ABUSE, SUICIDE, VIOLENCE, OTHER }
-    public enum Status { PENDING, REVIEWED, DISMISSED, ACTION_TAKEN }
+    public enum Status { PENDING, REVIEWED, ACTION_TAKEN }
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

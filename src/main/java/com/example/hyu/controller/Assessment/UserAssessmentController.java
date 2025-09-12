@@ -2,7 +2,7 @@ package com.example.hyu.controller.Assessment;
 
 import com.example.hyu.dto.Assessment.user.*;
 import com.example.hyu.security.AuthPrincipal;
-import com.example.hyu.service.UserAssessmentService;
+import com.example.hyu.service.Assessment.UserAssessmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,7 +11,6 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.util.StringUtils;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 

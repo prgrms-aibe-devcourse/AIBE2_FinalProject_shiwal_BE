@@ -56,29 +56,33 @@ public class AuthService {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
-        //계정 상태 체크(정지/탈퇴 차단 + 자동해제)
+        // ✅ 계정 상태 체크(정지/탈퇴 차단 + 자동 해제)
         Instant now = Instant.now();
 
-        //정지 만료 자동 해제
-        if(user.getState() == Users.UserState.SUSPENDED){
-            if(user.getSuspendUntil() != null && user.getSuspendUntil().isBefore(now)){
-                user.setState(Users.UserState.ACTIVE);
-                user.setSuspendUntil(null);
-            }else {
-                //아직 정지 중
-                String untilTxt = user.getSuspendUntil() != null ? user.getSuspendUntil().toString() : "until manual unlock";
-            }
-        }
-
-        //탈퇴 차단
-        if(user.getState() == Users.UserState.WITHDRAWN){
+        // 1) 탈퇴 계정은 즉시 차단
+        if (user.getState() == Users.UserState.WITHDRAWN) {
             throw new IllegalStateException("ACCOUNT_WITHDRAWN");
         }
 
-        // 이메일 포함하여 토큰 발급 (팀원 요구사항)
+        // 2) 정지 계정 처리
+        if (user.getState() == Users.UserState.SUSPENDED) {
+            // 2-1) 정지 만료 시간이 있고, 이미 지났으면 자동 해제
+            if (user.getSuspendUntil() != null && !user.getSuspendUntil().isAfter(now)) {
+                user.setState(Users.UserState.ACTIVE);
+                user.setSuspendUntil(null);
+            } else {
+                // 2-2) 아직 정지 중(만료 시간이 없거나 미래면 계속 정지)
+                throw new IllegalStateException("ACCOUNT_SUSPENDED");
+            }
+        }
+
+        // (선택) 비밀번호 재설정 유도 플래그가 있다면, 여기서도 응답에 힌트를 줄 수 있음
+        // boolean mustChangePassword = user.isNeedPasswordReset();
+
+        // ✅ 이메일 포함하여 토큰 발급 (팀원 요구사항)
         String token = jwtTokenProvider.createToken(user.getId(), user.getRole(), user.getEmail());
 
-        // 로그인 이력 적재 (ManyToOne 매핑 기준)
+        // ✅ 로그인 이력 적재
         UserLogin loginLog = UserLogin.builder()
                 .loggedAt(Instant.now())
                 .ip(extractClientIp(httpReq))

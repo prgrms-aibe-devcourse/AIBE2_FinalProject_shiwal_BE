@@ -15,13 +15,14 @@ import java.time.Instant;
                 @Index(name = "idx_user_email", columnList = "email", unique = true),
                 @Index(name = "idx_user_role", columnList = "role"),
                 @Index(name = "idx_user_state", columnList = "state"),
-                @Index(name = "idx_user_created_at", columnList = "created_at")
+                @Index(name = "idx_user_created_at", columnList = "created_at"),
+                @Index(name = "idx_user_risk_level", columnList = "risk_level")
         }
 )
 public class Users extends BaseTimeEntity {
 
     public enum UserState { ACTIVE, SUSPENDED, WITHDRAWN }
-    public enum RiskMode { WARN, EXEMPT }
+    public enum RiskLevel { MILD, MODERATE, RISK, HIGH_RISK }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -57,9 +58,9 @@ public class Users extends BaseTimeEntity {
     private String phone;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "risk_mode", length = 10)
+    @Column(name = "risk_level", length = 20, nullable = false)
     @Builder.Default
-    private RiskMode riskMode = RiskMode.WARN;
+    private RiskLevel riskLevel = RiskLevel.MILD;
 
     @Column(name = "pwd_reset_token_hash")
     private String passwordResetTokenHash;

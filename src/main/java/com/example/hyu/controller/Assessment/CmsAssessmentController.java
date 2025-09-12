@@ -2,7 +2,7 @@ package com.example.hyu.controller.Assessment;
 
 import com.example.hyu.dto.Assessment.admin.*;
 import com.example.hyu.security.AuthPrincipal;
-import com.example.hyu.service.CmsAssessmentService;
+import com.example.hyu.service.Assessment.CmsAssessmentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

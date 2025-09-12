@@ -1,10 +1,7 @@
 package com.example.hyu.config;
 
-import com.example.hyu.security.CustomAccessDeniedHandler;
-import com.example.hyu.security.JwtAuthenticationEntryPoint;
-import com.example.hyu.security.JwtAuthenticationFilter;
-import com.example.hyu.security.JwtProperties;
-import com.example.hyu.security.JwtTokenProvider;
+import com.example.hyu.repository.UserRepository;
+import com.example.hyu.security.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,12 +29,19 @@ public class SecurityConfig {
     @Bean
     public CustomAccessDeniedHandler customAccessDeniedHandler() { return new CustomAccessDeniedHandler(); }
 
+    // 정지/탈퇴 전역 차단 필터 빈
+    @Bean
+    public SuspensionGuardFilter suspensionGuardFilter(UserRepository userRepository){
+        return new SuspensionGuardFilter(userRepository);
+    }
+
     @Bean
     public SecurityFilterChain filterChain(
             HttpSecurity http,
             JwtAuthenticationFilter jwtFilter,
             JwtAuthenticationEntryPoint entryPoint,
-            CustomAccessDeniedHandler denied
+            CustomAccessDeniedHandler denied,
+            SuspensionGuardFilter suspensionGuardFilter
     ) throws Exception {
 
         http
@@ -87,7 +91,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(denied)          // 403
                 )
 
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(suspensionGuardFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
