@@ -21,7 +21,19 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final TokenStoreService tokenStoreService; // ★ 서버측 블랙리스트/리프레시 저장소
+    private final TokenStoreService tokenStoreService; /**
+     * Processes incoming requests to authenticate users from a Bearer JWT.
+     *
+     * <p>If the Authorization header is missing or doesn't start with "Bearer ", or the token is invalid,
+     * the filter does nothing and forwards the request. For a valid token the filter:
+     * - checks the token's JTI against the server-side blacklist and abandons authentication if blacklisted;
+     * - extracts userId, role, and email from the token;
+     * - when userId is present, normalizes the role to the "ROLE_" prefix, builds an AuthPrincipal and a
+     *   UsernamePasswordAuthenticationToken, and stores it in the SecurityContextHolder.</p>
+     *
+     * <p>The filter always continues the filter chain after processing. Its primary side effect is setting
+     * the SecurityContext authentication when a valid, non-blacklisted token with a userId is present.</p>
+     */
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
@@ -69,6 +81,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         chain.doFilter(request, response);
     }
 
+    /**
+     * Normalize a role name to the standard Spring Security prefix.
+     *
+     * If the input is null, empty, or only whitespace, returns "ROLE_USER".
+     * If the input already starts with "ROLE_", it is returned unchanged.
+     * Otherwise, returns the input prefixed with "ROLE_".
+     *
+     * @param r the role name to normalize (may be null or blank)
+     * @return a role string guaranteed to start with "ROLE_"
+     */
     private String normalizeRole(String r) {
         if (!StringUtils.hasText(r)) return "ROLE_USER";
         return r.startsWith("ROLE_") ? r : "ROLE_" + r;

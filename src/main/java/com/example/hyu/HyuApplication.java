@@ -13,6 +13,13 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 
 public class HyuApplication {
 
+	/**
+	 * Application entry point; boots the Spring application context.
+	 *
+	 * Invokes SpringApplication.run(...) to start the Spring Boot application using this class.
+	 *
+	 * @param args command-line arguments forwarded to SpringApplication (may contain Spring profile settings and other startup options)
+	 */
 	public static void main(String[] args) {
 		SpringApplication.run(HyuApplication.class, args);
 	}
