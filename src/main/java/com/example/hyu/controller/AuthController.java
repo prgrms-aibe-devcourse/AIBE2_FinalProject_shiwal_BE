@@ -19,12 +19,30 @@ public class AuthController {
 
     private final AuthService authService;
 
+    /**
+     * Registers a new user from the JSON signup payload.
+     *
+     * <p>Accepts a validated UserSignupRequest from the request body, delegates creation to the service,
+     * and returns the created user's public representation.</p>
+     *
+     * @param req the validated signup payload (request body)
+     * @return a ResponseEntity with a UserResponse containing the created user's public data (HTTP 200)
+     */
     @PostMapping("/signup")
     public ResponseEntity<UserResponse> signup(@RequestBody @Valid UserSignupRequest req) {
         return ResponseEntity.ok(authService.signup(req));
     }
 
-    // ★ Response로 교체: 로그인 시 RT 쿠키 내려주기 위함
+    /**
+     * Authenticate a user and return authentication details.
+     *
+     * Delegates authentication to AuthService; on success it writes the refresh-token (RT) cookie to
+     * the provided HttpServletResponse and returns a 200 OK with a UserAuthResponse (typically containing
+     * an access token and user info).
+     *
+     * @param req validated login credentials
+     * @return 200 OK with the authenticated user's auth payload
+     */
     @PostMapping("/login")
     public ResponseEntity<UserAuthResponse> login(@RequestBody @Valid UserLoginRequest req,
                                                   HttpServletResponse res,
@@ -32,13 +50,26 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(req, httpReq, res));
     }
 
-    // ★ 리프레시(재발급+회전)
+    /**
+     * Refreshes authentication tokens by delegating to the AuthService.
+     *
+     * <p>Reads the incoming refresh token from the request (e.g. cookie or header) and issues rotated
+     * tokens, writing any response-side artifacts (e.g. updated cookies) to the HttpServletResponse.
+     *
+     * @return 200 OK with a UserAuthResponse containing the new access token and related auth data
+     */
     @PostMapping("/refresh")
     public ResponseEntity<UserAuthResponse> refresh(HttpServletRequest req, HttpServletResponse res) {
         return ResponseEntity.ok(authService.refresh(req, res));
     }
 
-    // ★ 로그아웃(멱등: RT 없어도 204)
+    /**
+     * Logs the user out by invalidating refresh token(s) and clearing authentication cookies; responds with HTTP 204 No Content.
+     *
+     * This operation is idempotent — it returns 204 even if no refresh token is present.
+     *
+     * @param allDevices when true, revoke sessions and refresh tokens across all devices; when false, revoke only the current session
+     */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestParam(defaultValue = "false") boolean allDevices,
                                        HttpServletRequest req, HttpServletResponse res) {

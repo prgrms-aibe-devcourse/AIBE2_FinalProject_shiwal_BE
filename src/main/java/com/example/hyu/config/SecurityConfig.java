@@ -29,6 +29,14 @@ public class SecurityConfig {
     @Value("${security.open-mode:true}")
     private boolean openMode;
 
+    /**
+     * Creates a JwtAuthenticationFilter bean that validates incoming JWTs and enforces token blacklist (JTI) checks.
+     *
+     * <p>The filter is constructed with a JWT token provider and a token store service used to verify whether a token
+     * has been revoked/blacklisted.</p>
+     *
+     * @return a configured JwtAuthenticationFilter instance
+     */
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider provider,
                                                            TokenStoreService tokenStoreService) {
@@ -36,12 +44,40 @@ public class SecurityConfig {
         return new JwtAuthenticationFilter(provider, tokenStoreService);
     }
 
+    /**
+     * Registers a JwtAuthenticationEntryPoint bean used to commence authentication for unauthorized requests.
+     *
+     * <p>This entry point produces the 401 Unauthorized response for requests that fail JWT authentication.
+     *
+     * @return a JwtAuthenticationEntryPoint instance
+     */
     @Bean
     public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() { return new JwtAuthenticationEntryPoint(); }
 
+    /**
+     * Creates and exposes a CustomAccessDeniedHandler bean used to handle access-denied (HTTP 403) responses.
+     *
+     * <p>Registered in the Spring context so the application's exception handling can delegate 403 responses
+     * to this handler (e.g., configured on the security filter chain).</p>
+     */
     @Bean
     public CustomAccessDeniedHandler customAccessDeniedHandler() { return new CustomAccessDeniedHandler(); }
 
+    /**
+     * Builds and returns the SecurityFilterChain used by the application.
+     *
+     * Configures HTTP security for a stateless JWT-based setup:
+     * - Disables CSRF, HTTP Basic, and form login.
+     * - Sets session management to stateless.
+     * - Permits unauthenticated access to public endpoints (root, health, auth paths, static/docs, etc.).
+     * - Requires ROLE_ADMIN for "/api/admin/**".
+     * - When {@code openMode} is true, all other requests are permitted; when false, all other requests require authentication.
+     * - Uses the provided {@code entryPoint} for 401 (unauthorized) handling and {@code denied} for 403 (access denied).
+     * - Registers the provided {@code jwtFilter} before {@link org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter}.
+     *
+     * @return a configured {@link SecurityFilterChain}
+     * @throws Exception if building the filter chain fails
+     */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http,
                                            JwtAuthenticationFilter jwtFilter,

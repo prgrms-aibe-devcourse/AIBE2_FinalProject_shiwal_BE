@@ -26,6 +26,18 @@ public class ProfileServiceImpl implements ProfileService {
     private final ProfileConcernRepository concernRepo;
     private final ProfileGoalRepository goalRepo;
 
+    /**
+     * Retrieves the profile for the given user ID, returning a ProfileResponse that includes
+     * profile fields, associated concern tags, and goals.
+     *
+     * If no Profile exists for the user, a default Profile is created and persisted with
+     * sensible defaults (e.g., nickname "사용자{userId}", preferredTone NEUTRAL, contentSensitivity MEDIUM,
+     * language "ko", anonymity true, weeklySummary false, safetyConsent false, crisisResourcesRegion "KR")
+     * and the current timestamp.
+     *
+     * @param userId the ID of the user whose profile to fetch
+     * @return a ProfileResponse containing the user's profile data, tags, goals, and last updated timestamp
+     */
     @Override
     public ProfileResponse getMyProfile(Long userId) {
         Profile p = profileRepo.findById(userId).orElseGet(() -> {
@@ -56,6 +68,21 @@ public class ProfileServiceImpl implements ProfileService {
         );
     }
 
+    /**
+     * Create or update the caller's Profile and associated tags and goals, then return the updated ProfileResponse.
+     *
+     * <p>This method is transactional: it inserts a new Profile if none exists for the given userId, applies updates
+     * from the provided ProfileUpdateRequest, and replaces concern tags and goals when those lists are present
+     * in the request (deletes existing entries and inserts the new set). Fields in the Profile are only changed
+     * when the corresponding request values are non-null (except avatarUrl, bio, and checkinReminder which are set
+     * unconditionally). The nickname and goal texts are trimmed before saving. The Profile's updatedAt is set to
+     * the current instant.</p>
+     *
+     * @param userId the id of the user whose profile will be created or updated
+     * @param req the update payload containing profile fields, concernTags, and goals; when concernTags or goals are
+     *            null, the corresponding stored entries are left unchanged; when provided they fully replace existing ones
+     * @return the latest ProfileResponse for the user after the upsert
+     */
     @Override
     @Transactional
     public ProfileResponse upsertMyProfile(Long userId, ProfileUpdateRequest req) {

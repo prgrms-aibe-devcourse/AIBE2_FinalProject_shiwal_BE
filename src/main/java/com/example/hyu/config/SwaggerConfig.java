@@ -12,6 +12,16 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class SwaggerConfig {
 
+    /**
+     * Creates the application's OpenAPI configuration.
+     *
+     * Returns an OpenAPI instance with API metadata (title "HYU Core API", version "v1")
+     * and a global JWT Bearer security requirement. A security scheme named
+     * "bearer-jwt" is added to Components with HTTP type, "bearer" scheme and "JWT"
+     * bearerFormat.
+     *
+     * @return configured OpenAPI instance with JWT Bearer security applied globally
+     */
     @Bean
     public OpenAPI openAPI() {
         String scheme = "bearer-jwt";
@@ -26,6 +36,16 @@ public class SwaggerConfig {
     }
 
 
+    /**
+     * Creates a GroupedOpenApi bean that includes all API endpoints under the top-level
+     * package "com.example".
+     *
+     * The resulting GroupedOpenApi is named "all", scans the "com.example" package (top-level)
+     * and matches all request paths ("/**"), making every controller in that package available
+     * to the generated OpenAPI documentation.
+     *
+     * @return a configured GroupedOpenApi that includes all endpoints in the "com.example" package
+     */
     @Bean
     public GroupedOpenApi allApis() {
         return GroupedOpenApi.builder()
