@@ -1,12 +1,18 @@
 package com.example.hyu.config;
 
 import com.example.hyu.repository.UserRepository;
-import com.example.hyu.security.*;
+import com.example.hyu.security.CustomAccessDeniedHandler;
+import com.example.hyu.security.JwtAuthenticationEntryPoint;
+import com.example.hyu.security.JwtAuthenticationFilter;
+import com.example.hyu.security.JwtProperties;
+import com.example.hyu.security.JwtTokenProvider;
+import com.example.hyu.security.SuspensionGuardFilter;
+import com.example.hyu.service.TokenStoreService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -14,35 +20,43 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@EnableMethodSecurity(prePostEnabled = true)
 @EnableConfigurationProperties(JwtProperties.class)
-@EnableMethodSecurity // 추가 : 메서드 단위 보안 활성화 (@PreAuthorize 등)
-public class SecurityConfig {
+class SecurityConfig {
 
+    // 개발 중 전체 공개/보호모드 스위치 (application.yml: security.open-mode)
+    @Value("${security.open-mode:true}")
+    private boolean openMode;
+
+    // JWT 필터(블랙리스트 JTI 검사 포함)
     @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider provider) {
-        return new JwtAuthenticationFilter(provider); // 토큰 유효하면 컨텍스트 세팅, 아니면 무시
+    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider provider,
+                                                           TokenStoreService tokenStoreService) {
+        return new JwtAuthenticationFilter(provider, tokenStoreService);
     }
 
     @Bean
-    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() { return new JwtAuthenticationEntryPoint(); }
+    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
+        return new JwtAuthenticationEntryPoint();
+    }
 
     @Bean
-    public CustomAccessDeniedHandler customAccessDeniedHandler() { return new CustomAccessDeniedHandler(); }
+    public CustomAccessDeniedHandler customAccessDeniedHandler() {
+        return new CustomAccessDeniedHandler();
+    }
 
-    // 정지/탈퇴 전역 차단 필터 빈
+    // 정지/탈퇴 전역 차단 필터
     @Bean
     public SuspensionGuardFilter suspensionGuardFilter(UserRepository userRepository){
         return new SuspensionGuardFilter(userRepository);
     }
 
     @Bean
-    public SecurityFilterChain filterChain(
-            HttpSecurity http,
-            JwtAuthenticationFilter jwtFilter,
-            JwtAuthenticationEntryPoint entryPoint,
-            CustomAccessDeniedHandler denied,
-            SuspensionGuardFilter suspensionGuardFilter
-    ) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http,
+                                           JwtAuthenticationFilter jwtFilter,
+                                           JwtAuthenticationEntryPoint entryPoint,
+                                           CustomAccessDeniedHandler denied,
+                                           SuspensionGuardFilter suspensionGuardFilter) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -50,47 +64,48 @@ public class SecurityConfig {
                 .formLogin(f -> f.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .authorizeHttpRequests(auth -> auth
-                                // ✅ 완전 공개 경로
-                                .requestMatchers(
-                                        "/",
-                                        "/index.html",
-                                        "/health",
-                                        "/auth/**",
-                                        "/api/contents/**",     // 콘텐츠 열람은 전부 공개
-                                        "/auth-test.html",
-                                        "/jwt-check.html",
-                                        "/static/**",
-                                        "/favicon.ico",
-                                        "/api/public/password-reset/**"
-                                ).permitAll()
+                // 인가 규칙 병합본
+                .authorizeHttpRequests(auth -> {
 
-                                // 자가진단평가: 공개 엔드포인트만 선별 허용
-                                .requestMatchers(HttpMethod.GET,  "/api/assessments").permitAll()                     // 목록
-                                .requestMatchers(HttpMethod.GET,  "/api/assessments/by-code/**").permitAll()          // 코드 단건
-                                .requestMatchers(HttpMethod.GET,  "/api/assessments/*/questions").permitAll()         // 문항 조회
-                                .requestMatchers(HttpMethod.PATCH,"/api/assessments/*/answers").permitAll()           // 답변 업서트(비로그인 허용)
-                                .requestMatchers(HttpMethod.POST, "/api/assessments/*/submit").permitAll()            // 제출 확정(비로그인 허용)
+                    auth.requestMatchers(
+                            "/", "/index.html",
+                            "/health",
+                            "/auth/**",
+                            "/api/contents/**",
+                            "/auth-test.html", "/jwt-check.html",
+                            "/static/**", "/favicon.ico",
+                            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+                            "/api/public/password-reset/**"
+                    ).permitAll();
 
-                                /* ---- 인증 필요 ---- */
-                                // 히스토리/최신 결과 는 로그인 필요
-                                .requestMatchers(HttpMethod.GET, "/api/assessments/*/results/**").authenticated()
+                    // 자가진단 공개 엔드포인트 (내 쪽에서 추가)
+                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments/by-code/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments/*/questions").permitAll();
+                    auth.requestMatchers(HttpMethod.PATCH,"/api/assessments/*/answers").permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/api/assessments/*/submit").permitAll();
 
-                                // ✅ 관리자 전용
-                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    // 자가진단 결과 조회는 인증 필요 (내 쪽 로직 유지)
+                    auth.requestMatchers(HttpMethod.GET, "/api/assessments/*/results/**").authenticated();
 
-                                .anyRequest().permitAll()
+                    // 관리자 전용
+                    auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
 
-                        // ⬇︎ 만약 일부 쓰기만 보호하고 싶다면 위 줄 대신 아래 두 줄 사용:
-                        // .requestMatchers(HttpMethod.GET, "/**").permitAll()
-                        // .anyRequest().authenticated()
-                )
+                    // openMode 스위치 (develop)
+                    if (openMode) {
+                        auth.anyRequest().permitAll();                            // 개발모드: 전부 공개
+                    } else {
+                        auth.anyRequest().authenticated();                        // 보호모드: 인증 필요
+                    }
+                })
 
+                // 401/403 핸들러
                 .exceptionHandling(e -> e
-                        .authenticationEntryPoint(entryPoint) // 401
-                        .accessDeniedHandler(denied)          // 403
+                        .authenticationEntryPoint(entryPoint)
+                        .accessDeniedHandler(denied)
                 )
 
+                // 필터 순서: JWT 인증 → 정지/탈퇴 가드
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(suspensionGuardFilter, JwtAuthenticationFilter.class);
 

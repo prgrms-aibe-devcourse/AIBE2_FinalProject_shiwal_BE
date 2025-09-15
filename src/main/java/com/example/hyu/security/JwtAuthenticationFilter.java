@@ -1,5 +1,6 @@
 package com.example.hyu.security;
 
+import com.example.hyu.service.TokenStoreService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,49 +22,77 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final TokenStoreService tokenStoreService; /**
+     * Processes incoming requests to authenticate users from a Bearer JWT.
+     *
+     * <p>If the Authorization header is missing or doesn't start with "Bearer ", or the token is invalid,
+     * the filter does nothing and forwards the request. For a valid token the filter:
+     * - checks the token's JTI against the server-side blacklist and abandons authentication if blacklisted;
+     * - extracts userId, role, and email from the token;
+     * - when userId is present, normalizes the role to the "ROLE_" prefix, builds an AuthPrincipal and a
+     *   UsernamePasswordAuthenticationToken, and stores it in the SecurityContextHolder.</p>
+     *
+     * <p>The filter always continues the filter chain after processing. Its primary side effect is setting
+     * the SecurityContext authentication when a valid, non-blacklisted token with a userId is present.</p>
+     */
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
 
-        // 1) Authorization 헤더에서 Bearer 토큰 추출
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (StringUtils.hasText(header) && header.toLowerCase().startsWith("bearer ")) { // ★ 변경: 견고한 파싱
-            String token = header.substring(7).trim(); // ★ 변경: 공백 제거
+        if (!(StringUtils.hasText(header) && header.toLowerCase().startsWith("Bearer "))){
+            chain.doFilter(request, response);
+            return;
+        }
 
-            // 2) 토큰 유효성 검사
-            if (jwtTokenProvider.isValid(token)) {
-                var userIdOpt = jwtTokenProvider.getUserId(token);  // Optional<Long>
-                var roleOpt   = jwtTokenProvider.getRole(token);    // Optional<String>("ADMIN"/"USER")
-                var emailOpt  = jwtTokenProvider.getEmail(token);   // ★ 변경: Optional<String>, 없으면 empty 반환
+        String token = header.substring(7).trim();
+        if (!jwtTokenProvider.isValid(token)) {
+            chain.doFilter(request, response);
+            return;
+        }
 
-                // 3) 인증 객체 생성 (principal은 AuthPrincipal로!)
-                if (userIdOpt.isPresent() && roleOpt.isPresent()) {  // ★ 변경: role까지 확인
-                    String role = roleOpt.get(); // "ADMIN" | "USER" ...
-                    var principal = new AuthPrincipal(                 // ★ 변경: Long → AuthPrincipal
-                            userIdOpt.get(),
-                            emailOpt.orElse(null),                      // email 클레임 없으면 null
-                            role
-                    );
+        // ★ Access 토큰 블랙리스트(JTI) 확인 (서버측 로그아웃/무효화)
+        String jti = jwtTokenProvider.getJti(token).orElse(null);
+        if (jti != null && tokenStoreService.isBlacklisted(jti)) {
+            chain.doFilter(request, response);
+            return;
+        }
 
-                    // Spring Security는 "ROLE_" 접두사가 붙은 권한을 기대
-                    List<SimpleGrantedAuthority> authorities =
-                            List.of(new SimpleGrantedAuthority("ROLE_" + role)); // ★ 변경
+        var userIdOpt = jwtTokenProvider.getUserId(token);
+        var roleOpt   = jwtTokenProvider.getRole(token);
+        var emailOpt  = jwtTokenProvider.getEmail(token);
 
-                    var authentication = new UsernamePasswordAuthenticationToken(
-                            principal,                                     // ★ 변경: principal 교체
-                            null,
-                            authorities
-                    );
+        if (userIdOpt.isPresent() && roleOpt.isPresent()) {
+            String role = normalizeRole(roleOpt.orElse("ROLE_USER")); // 안전하게 ROLE_ 표준화
+            List<SimpleGrantedAuthority> auths = List.of(new SimpleGrantedAuthority(role));
 
-                    // 표준 details 세팅 (IP/세션 등)
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); // ★ 변경
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            }
+            // ★ 우리 프로젝트의 주체 타입(컨트롤러에서 @AuthenticationPrincipal로 받음)
+            AuthPrincipal principal = new AuthPrincipal(userIdOpt.get(), emailOpt.orElse(null), role);
 
+            AbstractAuthenticationToken authentication =
+                    new UsernamePasswordAuthenticationToken(principal, null, auths);
+
+            // (선택) 요청정보를 details에 넣고 싶으면:
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); // ★ 변경
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         chain.doFilter(request, response);
+    }
+
+    /**
+     * Normalize a role name to the standard Spring Security prefix.
+     *
+     * If the input is null, empty, or only whitespace, returns "ROLE_USER".
+     * If the input already starts with "ROLE_", it is returned unchanged.
+     * Otherwise, returns the input prefixed with "ROLE_".
+     *
+     * @param r the role name to normalize (may be null or blank)
+     * @return a role string guaranteed to start with "ROLE_"
+     */
+    private String normalizeRole(String r) {
+        if (!StringUtils.hasText(r)) return "ROLE_USER";
+        return r.startsWith("ROLE_") ? r : "ROLE_" + r;
     }
 }

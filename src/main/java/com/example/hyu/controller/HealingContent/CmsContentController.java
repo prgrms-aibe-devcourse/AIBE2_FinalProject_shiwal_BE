@@ -28,7 +28,7 @@ public class CmsContentController {
     @PostMapping
     public CmsContentResponse create(@Valid @RequestBody CmsContentRequest req,
                                      @AuthenticationPrincipal AuthPrincipal principal) {
-        return service.create(req, principal.id()); // 토큰의 userId 사용
+        return service.create(req, principal.getUserId()); // 토큰의 userId 사용
     }
 
     // 단건 조회
@@ -62,7 +62,7 @@ public class CmsContentController {
     public CmsContentResponse update(@PathVariable Long id,
                                      @Valid @RequestBody CmsContentRequest req,
                                      @AuthenticationPrincipal AuthPrincipal principal) {
-        return service.update(id, req, principal.id());
+        return service.update(id, req, principal.getUserId());
     }
 
     // 공개/비공개 토글
@@ -70,7 +70,7 @@ public class CmsContentController {
     public void setVisibility(@PathVariable Long id,
                               @RequestParam("value") Visibility value,
                               @AuthenticationPrincipal AuthPrincipal principal) {
-        service.toggleVisibility(id, value, principal.id());
+        service.toggleVisibility(id, value, principal.getUserId());
     }
 
     // 삭제

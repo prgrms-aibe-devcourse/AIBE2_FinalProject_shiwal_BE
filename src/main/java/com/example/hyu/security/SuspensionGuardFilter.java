@@ -25,7 +25,7 @@ public class SuspensionGuardFilter extends OncePerRequestFilter {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getPrincipal() instanceof AuthPrincipal principal) {
-            userRepository.findById(principal.id()).ifPresent(u -> {
+            userRepository.findById(principal.getUserId()).ifPresent(u -> {
                 Instant now = Instant.now();
 
                 boolean withdrawn = u.getState() == Users.UserState.WITHDRAWN;

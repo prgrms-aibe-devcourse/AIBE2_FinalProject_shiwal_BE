@@ -54,7 +54,7 @@ public class UserAssessmentController {
             @Valid @RequestBody AssessmentAnswerReq body,
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
-        Long userId = (principal != null) ? principal.id() : null;
+        Long userId = (principal != null) ? principal.getUserId() : null;
         service.upsertDraftAnswer(assessmentId, userId, headerGuestKey, body); // ← 헤더 값 그대로 전달
         return ResponseEntity.noContent().build();
     }
@@ -73,7 +73,7 @@ public class UserAssessmentController {
         if (body.assessmentId() != null && !body.assessmentId().equals(assessmentId)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
-        Long userId = (principal != null) ? principal.id() : null;
+        Long userId = (principal != null) ? principal.getUserId() : null;
 
         // path 기준으로 id만 보정해서 전달
         AssessmentSubmitReq fixed = new AssessmentSubmitReq(
@@ -92,7 +92,7 @@ public class UserAssessmentController {
                                       @AuthenticationPrincipal AuthPrincipal principal) {
         // SecurityConfig에서 인증 요구하지만, 방어적으로 체크
         if (principal == null) throw new org.springframework.security.access.AccessDeniedException("Unauthorized");
-        return service.latestResult(assessmentId, principal.id());
+        return service.latestResult(assessmentId, principal.getUserId());
     }
 
     @GetMapping("/{assessmentId}/results")
@@ -100,6 +100,6 @@ public class UserAssessmentController {
                                                   @PageableDefault(size = 20) Pageable pageable,
                                                   @AuthenticationPrincipal AuthPrincipal principal) {
         if (principal == null) throw new org.springframework.security.access.AccessDeniedException("Unauthorized");
-        return service.history(assessmentId, principal.id(), pageable);
+        return service.history(assessmentId, principal.getUserId(), pageable);
     }
 }

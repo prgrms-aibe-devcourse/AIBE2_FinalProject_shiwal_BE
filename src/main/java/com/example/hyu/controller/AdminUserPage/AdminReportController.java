@@ -41,6 +41,6 @@ public class AdminReportController {
     public ReportDetailResponse update(@PathVariable Long id,
                                        @RequestBody ReportUpdateRequest req,
                                        @AuthenticationPrincipal AuthPrincipal me) {
-        return service.update(id, req, me.id());
+        return service.update(id, req, me.getUserId());
     }
 }
