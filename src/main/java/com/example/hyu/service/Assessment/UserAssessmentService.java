@@ -1,8 +1,10 @@
 package com.example.hyu.service.Assessment;
 
 import com.example.hyu.dto.Assessment.user.*;
+import com.example.hyu.dto.kpi.EventRequest;
 import com.example.hyu.entity.*;
 import com.example.hyu.repository.Assessment.*;
+import com.example.hyu.service.kpi.EventService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +14,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +26,7 @@ public class UserAssessmentService {
     private final AssessmentSubmissionRepository submissionRepo;
     private final AssessmentAnswerRepository answerRepo;
     private final AssessmentRangeRepository rangeRepo;
+    private final EventService eventService;
 
     /* =========================
        1) 검사 목록 / 상세
@@ -180,7 +184,31 @@ public class UserAssessmentService {
         submission.setStatus(AssessmentSubmission.Status.SUBMITTED);
         submissionRepo.save(submission);
 
-        // 8) 응답
+        // 8) 이벤트 저장 API 호출
+        EventRequest event1 = new EventRequest(
+                userId,                                // 유저 ID
+                "self_assessment_completed",           // 이벤트명
+                Instant.now().toString(),              // 발생 시각 (UTC ISO8601)
+                "ok",                                  // 상태
+                null,                                  // level 없음
+                submission.getId().toString(),         // sessionId = submissionId 사용 가능
+                Map.of("assessmentId", assessmentId)   // meta: 부가정보
+        );
+        eventService.ingest(event1, null);
+
+        // risk_detected 이벤트는 항상 기록 (레벨 포함)
+        EventRequest event2 = new EventRequest(
+                userId,
+                "risk_detected",
+                Instant.now().toString(),
+                "ok",
+                band.getLevel().name().toLowerCase(),         // mild, moderate, risk, high_risk
+                submission.getId().toString(),
+                Map.of("assessmentId", assessmentId, "score", total)
+        );
+        eventService.ingest(event2, null);
+
+        // 9) 응답
         return new AssessmentSubmitRes(
                 submission.getId(), assessmentId, submission.getSubmittedAt(),
                 band.getLevel(), band.getLabelKo(), band.getSummaryKo(), band.getAdviceKo()
