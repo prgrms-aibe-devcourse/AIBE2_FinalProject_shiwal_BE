@@ -5,7 +5,7 @@ import com.example.hyu.dto.user.UserLoginRequest;
 import com.example.hyu.dto.user.UserMapper;
 import com.example.hyu.dto.user.UserResponse;
 import com.example.hyu.dto.user.UserSignupRequest;
-import com.example.hyu.entity.User;
+import com.example.hyu.entity.Users;
 import com.example.hyu.entity.UserLogin;
 import com.example.hyu.repository.UserLoginRepository;
 import com.example.hyu.repository.UserRepository;
@@ -51,7 +51,7 @@ public class AuthService {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
         }
 
-        User user = User.builder()
+        Users user = Users.builder()
                 .email(req.email())
                 .password(passwordEncoder.encode(req.password()))
                 .name(req.name())
@@ -76,11 +76,31 @@ public class AuthService {
      */
     @Transactional
     public UserAuthResponse login(UserLoginRequest req, HttpServletRequest httpReq, HttpServletResponse res) {
-        User user = userRepository.findByEmail(req.email())
+        Users user = userRepository.findByEmail(req.email())
                 .orElseThrow(() -> new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
         if (!passwordEncoder.matches(req.password(), user.getPassword())) {
             throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
+
+        // ✅ 계정 상태 체크(정지/탈퇴 차단 + 자동 해제)
+        Instant now = Instant.now();
+
+        // 1) 탈퇴 계정은 즉시 차단
+        if (user.getState() == Users.UserState.WITHDRAWN) {
+            throw new IllegalStateException("ACCOUNT_WITHDRAWN");
+        }
+
+        // 2) 정지 계정 처리
+        if (user.getState() == Users.UserState.SUSPENDED) {
+            // 2-1) 정지 만료 시간이 있고, 이미 지났으면 자동 해제
+            if (user.getSuspendUntil() != null && !user.getSuspendUntil().isAfter(now)) {
+                user.setState(Users.UserState.ACTIVE);
+                user.setSuspendUntil(null);
+            } else {
+                // 2-2) 아직 정지 중(만료 시간이 없거나 미래면 계속 정지)
+                throw new IllegalStateException("ACCOUNT_SUSPENDED");
+            }
         }
 
         String access = jwtTokenProvider.createToken(user.getId(), user.getRole(), user.getEmail());

@@ -42,5 +42,5 @@ public class Session {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "유저아이디2", foreignKey = @ForeignKey(name = "FK_sessions_user"))
-    private User user;
+    private Users user;
 }

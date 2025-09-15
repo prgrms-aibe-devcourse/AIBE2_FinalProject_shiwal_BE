@@ -11,6 +11,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -40,12 +41,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     FilterChain chain) throws ServletException, IOException {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (header == null || !header.startsWith("Bearer ")) {
+        if (!(StringUtils.hasText(header) && header.toLowerCase().startsWith("Bearer "))){
             chain.doFilter(request, response);
             return;
         }
 
-        String token = header.substring(7);
+        String token = header.substring(7).trim();
         if (!jwtTokenProvider.isValid(token)) {
             chain.doFilter(request, response);
             return;
@@ -62,7 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         var roleOpt   = jwtTokenProvider.getRole(token);
         var emailOpt  = jwtTokenProvider.getEmail(token);
 
-        if (userIdOpt.isPresent()) {
+        if (userIdOpt.isPresent() && roleOpt.isPresent()) {
             String role = normalizeRole(roleOpt.orElse("ROLE_USER")); // 안전하게 ROLE_ 표준화
             List<SimpleGrantedAuthority> auths = List.of(new SimpleGrantedAuthority(role));
 
@@ -73,8 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     new UsernamePasswordAuthenticationToken(principal, null, auths);
 
             // (선택) 요청정보를 details에 넣고 싶으면:
-            authentication.setDetails(request);
-
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request)); // ★ 변경
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
