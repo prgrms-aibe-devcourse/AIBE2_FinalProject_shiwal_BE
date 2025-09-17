@@ -22,26 +22,14 @@ import java.util.List;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
-    private final TokenStoreService tokenStoreService; /**
-     * Processes incoming requests to authenticate users from a Bearer JWT.
-     *
-     * <p>If the Authorization header is missing or doesn't start with "Bearer ", or the token is invalid,
-     * the filter does nothing and forwards the request. For a valid token the filter:
-     * - checks the token's JTI against the server-side blacklist and abandons authentication if blacklisted;
-     * - extracts userId, role, and email from the token;
-     * - when userId is present, normalizes the role to the "ROLE_" prefix, builds an AuthPrincipal and a
-     *   UsernamePasswordAuthenticationToken, and stores it in the SecurityContextHolder.</p>
-     *
-     * <p>The filter always continues the filter chain after processing. Its primary side effect is setting
-     * the SecurityContext authentication when a valid, non-blacklisted token with a userId is present.</p>
-     */
+    private final TokenStoreService tokenStoreService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
 
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (!(StringUtils.hasText(header) && header.toLowerCase().startsWith("Bearer "))){
+        if (!(StringUtils.hasText(header) && header.startsWith("Bearer "))){
             chain.doFilter(request, response);
             return;
         }

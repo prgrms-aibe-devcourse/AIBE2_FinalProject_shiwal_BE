@@ -78,15 +78,19 @@ class SecurityConfig {
                             "/api/public/password-reset/**"
                     ).permitAll();
 
-                    // 자가진단 공개 엔드포인트 (내 쪽에서 추가)
+                    // 공개 엔드포인트
                     auth.requestMatchers(HttpMethod.GET,  "/api/assessments").permitAll();
                     auth.requestMatchers(HttpMethod.GET,  "/api/assessments/by-code/**").permitAll();
                     auth.requestMatchers(HttpMethod.GET,  "/api/assessments/*/questions").permitAll();
                     auth.requestMatchers(HttpMethod.PATCH,"/api/assessments/*/answers").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/assessments/*/submit").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,  "/api/community-posts/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/api/community-posts/*/comments/**").permitAll();
 
-                    // 자가진단 결과 조회는 인증 필요 (내 쪽 로직 유지)
+                    // 인증 필요
                     auth.requestMatchers(HttpMethod.GET, "/api/assessments/*/results/**").authenticated();
+                    auth.requestMatchers("/api/community-posts/**").authenticated();
+                    auth.requestMatchers("/api/community-posts/*/comments/**").authenticated();
 
                     // 관리자 전용
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
