@@ -1,37 +1,32 @@
-HELP.md
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+﻿# ---- Python (BE2) ----
+**/.venv/
+**/__pycache__/
+**/*.pyc
+be2-ai/hf_cache/
+be2-ai/torch_cache/
+be2-ai/logs/
+be2-ai/.pytest_cache/
+be2-ai/.mypy_cache/
+be2-ai/.ruff_cache/
+be2-ai/*.pem
+be2-ai/result.json
+.env
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# ---- Java/Gradle (BE1) ----
+.gradle/
+**/build/
+**/out/
+**/bin/
+logs/
+*.log
 
-### IntelliJ IDEA ###
-.idea
-*.iws
+# IDE
+.idea/
 *.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-
-### VS Code ###
 .vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+rewrite.txt
