@@ -50,7 +50,7 @@ public class CommunityPost extends BaseTimeEntity {
     @Column(name = "view_count", nullable = false)
     private int viewCount;
 
-    /** 좋아요 수: 좋아요 기능 붙일 때 사용 (초기 0) */
+    /** 좋아요 수: 좋아요 기능 붙일 때 사용 */
     @Column(name = "like_count", nullable = false)
     private int likeCount;
 
