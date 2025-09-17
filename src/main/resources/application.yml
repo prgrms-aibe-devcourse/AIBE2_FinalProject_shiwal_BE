@@ -1,2 +1,42 @@
-spring.application.name=hyu
-spring.profiles.active=dev
+spring:
+  application:
+    name: hyu
+  profiles:
+    # 항상 dev로 '고정'하지 말고, 명시 안 했을 때만 dev로 올라가게
+    default: dev
+  config:
+    # 존재하면 자동으로 병합됨 (개인 로컬 비밀번호/포트 등을 -local 로 분리)
+    import: optional:application-${spring.profiles.active}-local.yml
+  jpa:
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        # (선택) JDBC 타임존 고정이 필요하면 아래 주석 해제
+        # jdbc.time_zone: UTC
+
+logging:
+  level:
+    # 운영 가까워질수록 DEBUG는 줄이는 게 안전
+    org.springframework.security: INFO
+    org.hibernate.SQL: warn
+    org.hibernate.orm.jdbc.bind: off
+    org.hibernate.orm.jdbc.extract: off
+
+jwt:
+  # 32바이트 이상 권장. 운영/CI에선 환경변수 JWT_SECRET로 반드시 덮어쓰기
+  secret: ${JWT_SECRET:please-change-me-to-256bit-string-32bytes-min}
+  validity-millis: 21600000        # 6시간
+  refresh-validity-millis: 1209600000 # 14일
+  refresh-cookie-name: RT
+  # 운영에선 true, 로컬/개발에선 false가 편함 -> 프로필별 yml에서 override 권장
+  refresh-cookie-secure: false
+  # (선택) 도메인을 쓰면 명시, 없으면 생략
+  # refresh-cookie-domain: null
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    display-request-duration: true

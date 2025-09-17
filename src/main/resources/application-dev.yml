@@ -17,3 +17,6 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+  security:
+    open-mode: false
