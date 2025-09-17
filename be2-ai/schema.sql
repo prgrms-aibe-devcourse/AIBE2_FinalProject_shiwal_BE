@@ -1,0 +1,24 @@
+﻿CREATE DATABASE IF NOT EXISTS hue CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE hue;
+
+CREATE TABLE IF NOT EXISTS crisis_events (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  text_hash CHAR(64) NOT NULL,
+  kw_score INT NOT NULL,
+  risk ENUM('low','medium','high') NOT NULL,
+  reasons JSON NULL,
+  templated TINYINT(1) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NULL,
+  session_id VARCHAR(64) NOT NULL,
+  message TEXT NOT NULL,
+  reply TEXT NOT NULL,
+  safety_flags JSON NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
