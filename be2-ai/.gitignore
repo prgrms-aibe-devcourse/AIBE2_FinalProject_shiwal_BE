@@ -1,0 +1,28 @@
+﻿# ---- Python (BE2) ----
+be2-ai/.venv/
+be2-ai/__pycache__/
+**/__pycache__/
+*.pyc
+be2-ai/hf_cache/
+be2-ai/torch_cache/
+be2-ai/logs/
+.env
+
+# ---- Java/Gradle (BE1) ----
+.gradle/
+**/build/
+**/out/
+**/bin/
+logs/
+*.log
+
+# IDE
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
