@@ -2,32 +2,25 @@ package com.example.hyu.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import java.time.Instant;
 
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AllArgsConstructor(access = AccessLevel.PRIVATE)
-@Builder
 @Entity
-@Table(
-        name = "community_post_likes",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_post_like_user", columnNames = {"게시글 ID", "사용자 ID"})
-        }
-)
+@Table(name = "post_likes",
+        uniqueConstraints = @UniqueConstraint(name="uk_post_like_user_post", columnNames={"user_id","post_id"}),
+        indexes = {
+                @Index(name="idx_post_like_post", columnList="post_id"),
+                @Index(name="idx_post_like_user", columnList="user_id")
+        })
+@Getter
+@NoArgsConstructor(access= AccessLevel.PROTECTED)
+@AllArgsConstructor(access=AccessLevel.PRIVATE) @Builder
 public class CommunityPostLike {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "공감id")
     private Long id;
 
-    @Column(name = "게시글 ID", nullable = false)
-    private Long postId; // FK → CommunityPost
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="user_id", nullable=false)
+    private Users user;
 
-    @Column(name = "사용자 ID", nullable = false)
-    private Long userId; // FK → User
-
-    @Column(name = "생성일시", nullable = false, updatable = false)
-    private Instant createdAt;
+    @ManyToOne(fetch=FetchType.LAZY) @JoinColumn(name="post_id", nullable=false)
+    private CommunityPost post;
 }

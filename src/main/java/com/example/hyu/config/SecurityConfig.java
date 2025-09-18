@@ -1,12 +1,7 @@
 package com.example.hyu.config;
 
 import com.example.hyu.repository.UserRepository;
-import com.example.hyu.security.CustomAccessDeniedHandler;
-import com.example.hyu.security.JwtAuthenticationEntryPoint;
-import com.example.hyu.security.JwtAuthenticationFilter;
-import com.example.hyu.security.JwtProperties;
-import com.example.hyu.security.JwtTokenProvider;
-import com.example.hyu.security.SuspensionGuardFilter;
+import com.example.hyu.security.*;
 import com.example.hyu.service.TokenStoreService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -56,7 +51,8 @@ class SecurityConfig {
                                            JwtAuthenticationFilter jwtFilter,
                                            JwtAuthenticationEntryPoint entryPoint,
                                            CustomAccessDeniedHandler denied,
-                                           SuspensionGuardFilter suspensionGuardFilter) throws Exception {
+                                           SuspensionGuardFilter suspensionGuardFilter,
+                                           ViewCookieFilter viewCookieFilter) throws Exception {
 
         http
                 .csrf(csrf -> csrf.disable())
@@ -79,18 +75,43 @@ class SecurityConfig {
                     ).permitAll();
 
                     // 공개 엔드포인트
-                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments").permitAll();
-                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments/by-code/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments/*/questions").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments",
+                                                        "/api/assessments/*/questions",
+                                                        "/api/assessments/by-code/**").permitAll();
                     auth.requestMatchers(HttpMethod.PATCH,"/api/assessments/*/answers").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/assessments/*/submit").permitAll();
-                    auth.requestMatchers(HttpMethod.GET,  "/api/community-posts/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET, "/api/community-posts/*/comments/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,  "/api/community-posts/**",
+                                                        "/api/community-posts/*/comments/**").permitAll();
+                    auth.requestMatchers(HttpMethod.GET,
+                            "/api/community-posts/*/likes/count",
+                            "/api/community-posts/*/comments/*/likes/count"
+                    ).permitAll();
+                    auth.requestMatchers(HttpMethod.GET,
+                            "/api/community-posts/*/polls",
+                            "/api/polls/*",
+                            "/api/polls/*/results"
+                    ).permitAll();
 
                     // 인증 필요
                     auth.requestMatchers(HttpMethod.GET, "/api/assessments/*/results/**").authenticated();
-                    auth.requestMatchers("/api/community-posts/**").authenticated();
-                    auth.requestMatchers("/api/community-posts/*/comments/**").authenticated();
+                    auth.requestMatchers(
+                            "/api/community-posts/**",
+                            "/api/community-posts/*/comments/**",
+                            "/api/community-posts/*/likes/**",
+                            "/api/community-posts/*/comments/*/likes/**"
+                    ).authenticated();
+                    auth.requestMatchers(
+                            "/api/community-posts/*/polls",
+                            "/api/polls/*/vote",
+                            "/api/polls/*"
+                    ).authenticated();
+                    auth.requestMatchers(HttpMethod.POST, "/api/reports/**").authenticated();
+                    auth.requestMatchers(
+                            HttpMethod.POST,
+                            "/api/community/posts/*/report",
+                            "/api/community/comments/*/report"
+                    ).authenticated();
+
 
                     // 관리자 전용
                     auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
@@ -109,9 +130,10 @@ class SecurityConfig {
                         .accessDeniedHandler(denied)
                 )
 
-                // 필터 순서: JWT 인증 → 정지/탈퇴 가드
+                // 필터 순서: JWT 인증 → 정지/탈퇴 가드 -> ViewCookie
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(suspensionGuardFilter, JwtAuthenticationFilter.class);
+                .addFilterAfter(suspensionGuardFilter, JwtAuthenticationFilter.class)
+                .addFilterAfter(viewCookieFilter,SuspensionGuardFilter.class);
 
         return http.build();
     }

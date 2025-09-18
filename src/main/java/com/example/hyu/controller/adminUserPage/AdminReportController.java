@@ -6,6 +6,7 @@ import com.example.hyu.dto.adminUserPage.ReportSummaryResponse;
 import com.example.hyu.dto.adminUserPage.ReportUpdateRequest;
 import com.example.hyu.security.AuthPrincipal;
 import com.example.hyu.service.adminUserPage.AdminReportService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.data.web.PageableDefault;
@@ -39,7 +40,7 @@ public class AdminReportController {
     // 상태/검토일 업데이트 (B안: 자동정지 없음)
     @PatchMapping("/{id}")
     public ReportDetailResponse update(@PathVariable Long id,
-                                       @RequestBody ReportUpdateRequest req,
+                                       @Valid @RequestBody ReportUpdateRequest req,
                                        @AuthenticationPrincipal AuthPrincipal me) {
         return service.update(id, req, me.getUserId());
     }

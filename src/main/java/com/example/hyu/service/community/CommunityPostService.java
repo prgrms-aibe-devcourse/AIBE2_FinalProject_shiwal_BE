@@ -12,8 +12,11 @@ import com.example.hyu.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class CommunityPostService {
     private final CommunityPostRepository postRepo;
     private final UserRepository userRepo;
+    private final StringRedisTemplate redisTemplate;
 
     // 생성
     @Transactional
@@ -41,15 +45,20 @@ public class CommunityPostService {
     }
 
 
-    // 단건 조회
+    // 단건 조회 (조회수 중복 방지 포함)
     @Transactional
-    public CommunityPostDetailResponse getOne(Long postId) {
+    public CommunityPostDetailResponse getOne(Long postId, String fingerprint) {
         CommunityPost p = postRepo.findById(postId)
                 .orElseThrow(() -> new RuntimeException("POST_NOT_FOUND"));
 
-        // 조회수 증가 (중복 방지는 나중에 캐시/세션에서)
-        p.increaseViewCount();
+        // Redis Key = "view:postId:fingerprint"
+        String key = "view: " + postId + " : " + fingerprint;
 
+        // 이미 본 적 없으면 조회수 + 1
+        if (Boolean.FALSE.equals(redisTemplate.hasKey(key))) {
+            p.increaseViewCount();
+            redisTemplate.opsForValue().set(key, "1", Duration.ofDays(1)); // 24 TTL
+        }
         return toDetailDto(p);
     }
 
