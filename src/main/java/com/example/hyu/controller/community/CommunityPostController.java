@@ -7,6 +7,7 @@ import com.example.hyu.dto.community.CommunityPostSummaryResponse;
 import com.example.hyu.dto.community.CommunityPostUpdateRequest;
 import com.example.hyu.security.AuthPrincipal;
 import com.example.hyu.service.community.CommunityPostService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -35,10 +36,20 @@ public class CommunityPostController {
         return ResponseEntity.status(HttpStatus.CREATED).body(java.util.Map.of("postId", id));
     }
 
-    // 단건 조회
+    // 단건 조회 ( 조회수 중복 방지)
     @GetMapping("/{id}")
-    public CommunityPostDetailResponse getOne(@PathVariable Long id) {
-        return service.getOne(id);
+    public CommunityPostDetailResponse getOne(
+            @PathVariable Long id,
+            @AuthenticationPrincipal AuthPrincipal me,
+            HttpServletRequest request) {
+
+        // 로그인 유저 -> userId 기반
+        // 비로그인 유저 -> ViewCookieFilter에서 심어둔 fingerprint 사용
+        String fingerprint = (me != null)
+                ? "USER: " + me.getUserId()
+                : (String) request.getAttribute("fingerprint");
+
+        return service.getOne(id, fingerprint);
     }
 
     // 목록 조회

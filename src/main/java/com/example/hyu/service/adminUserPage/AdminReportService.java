@@ -7,13 +7,12 @@ import com.example.hyu.dto.adminUserPage.ReportSummaryResponse;
 import com.example.hyu.dto.adminUserPage.ReportUpdateRequest;
 import com.example.hyu.entity.Report;
 import com.example.hyu.repository.adminUserPage.ReportQueryRepository;
-import com.example.hyu.repository.adminUserPage.ReportRepository;
+import com.example.hyu.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.NoSuchElementException;
 
 @Service
@@ -38,26 +37,25 @@ public class AdminReportService {
         return toDetail(r);
     }
 
-
+    // 검토 / 조치 업데이트
     @Transactional
     public ReportDetailResponse update(Long id, ReportUpdateRequest req, Long adminId) {
         Report r = reportRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("REPORT_NOT_FOUND"));
 
+        // 상태 처리
         if (req.status() != null && !req.status().isBlank()) {
             String normalized = req.status().trim().toUpperCase();
-            // 화이트리스트 체크로 DISMISSED 유입 차단
             switch (normalized) {
-                case "PENDING", "REVIEWED", "ACTION_TAKEN" ->
-                    r.setStatus(Report.Status.valueOf(normalized));
+                case "REVIEWED" -> r.markReviewed(adminId, req.note());
+                case "ACTION_TAKEN" -> r.markActionTaken(adminId, req.note());
+                case "PENDING" -> r.setStatus(Report.Status.PENDING); // 되돌리기
                 default -> throw new IllegalArgumentException("INVALID_STATUS");
             }
-        }
-        if (req.note() != null) {                 // ✅ 관리자 메모 반영
+        } else if (req.note() != null) {
+            // 상태 변경 없이 메모만 수정 가능
             r.setAdminNote(req.note().trim());
         }
-        r.setLastReviewedAt(Instant.now());
-
         return toDetail(r);
     }
 
@@ -72,7 +70,7 @@ public class AdminReportService {
                 r.getTargetId(),
                 r.getReason().name(),
                 r.getStatus().name(),
-                r.getLastReviewedAt()             // ✅ 변경
+                r.getLastReviewedAt()
         );
     }
 
