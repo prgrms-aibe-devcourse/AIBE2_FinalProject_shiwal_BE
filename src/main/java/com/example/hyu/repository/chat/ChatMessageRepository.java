@@ -9,5 +9,11 @@ import java.util.UUID;
 
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
     Page<ChatMessage> findBySession_IdAndUserIdOrderByCreatedAtAsc(UUID sessionId, Long userId, Pageable pageable);
+
+    // ✅ 프로필용: 사용자 전체 최근 메시지 피드 (최신순)
+    Page<ChatMessage> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    Page<ChatMessage> findBySession_IdAndUserId(UUID sessionId, Long userId, Pageable pageable);
+
     boolean existsBySession_IdAndUserId(UUID sessionId, Long userId);
 }

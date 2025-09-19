@@ -6,8 +6,13 @@ import lombok.*;
 import java.time.*;
 
 @Entity
-@Table(name = "weekly_summaries",
-        uniqueConstraints = @UniqueConstraint(name="uk_weekly_summary_user_week", columnNames = {"user_id","week_start"}))
+@Table(
+        name = "weekly_summaries",
+        uniqueConstraints = @UniqueConstraint(
+                name="uk_weekly_summary_user_week",
+                columnNames = {"user_id","week_start"}
+        )
+)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class WeeklySummary {
 
@@ -28,6 +33,11 @@ public class WeeklySummary {
     @Column(columnDefinition = "text")
     private String content;
 
-    @Column(nullable=false)
+    @Column(name = "created_at", nullable=false, updatable = false)
     private Instant createdAt;
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = Instant.now();
+    }
 }

@@ -9,7 +9,10 @@ import java.time.Instant;
 @Entity
 @Table(
         name = "chat_messages",
-        indexes = { @Index(name = "idx_msg_session_created", columnList = "session_id, createdAt") }
+        indexes = {
+                // 물리 컬럼명 사용
+                @Index(name = "idx_msg_session_created", columnList = "session_id, created_at")
+        }
 )
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class ChatMessage {
@@ -36,13 +39,14 @@ public class ChatMessage {
     @Comment("메시지 내용")
     private String content;
 
-    @Column(nullable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
 
     public enum Role { USER, ASSISTANT, SYSTEM }
 
     @PrePersist
     void onCreate() {
-        this.createdAt = Instant.now();
+        if (createdAt == null) createdAt = Instant.now();
     }
 }
