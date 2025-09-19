@@ -24,5 +24,5 @@ public class UserLogin {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "유저아이디", nullable = false) // FK → users.id
-    private Users user;
+    private User user;
 }

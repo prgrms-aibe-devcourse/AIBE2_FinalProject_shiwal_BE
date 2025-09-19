@@ -1,113 +1,43 @@
 package com.example.hyu.config;
 
-import com.example.hyu.repository.UserRepository;
-import com.example.hyu.security.CustomAccessDeniedHandler;
-import com.example.hyu.security.JwtAuthenticationEntryPoint;
-import com.example.hyu.security.JwtAuthenticationFilter;
-import com.example.hyu.security.JwtProperties;
-import com.example.hyu.security.JwtTokenProvider;
-import com.example.hyu.security.SuspensionGuardFilter;
-import com.example.hyu.service.TokenStoreService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import com.example.hyu.security.JwtProperties;
 
 @Configuration
-@EnableMethodSecurity(prePostEnabled = true)
 @EnableConfigurationProperties(JwtProperties.class)
-class SecurityConfig {
-
-    // 개발 중 전체 공개/보호모드 스위치 (application.yml: security.open-mode)
-    @Value("${security.open-mode:true}")
-    private boolean openMode;
-
-    // JWT 필터(블랙리스트 JTI 검사 포함)
-    @Bean
-    public JwtAuthenticationFilter jwtAuthenticationFilter(JwtTokenProvider provider,
-                                                           TokenStoreService tokenStoreService) {
-        return new JwtAuthenticationFilter(provider, tokenStoreService);
-    }
+public class SecurityConfig {
 
     @Bean
-    public JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint() {
-        return new JwtAuthenticationEntryPoint();
-    }
-
-    @Bean
-    public CustomAccessDeniedHandler customAccessDeniedHandler() {
-        return new CustomAccessDeniedHandler();
-    }
-
-    // 정지/탈퇴 전역 차단 필터
-    @Bean
-    public SuspensionGuardFilter suspensionGuardFilter(UserRepository userRepository){
-        return new SuspensionGuardFilter(userRepository);
-    }
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http,
-                                           JwtAuthenticationFilter jwtFilter,
-                                           JwtAuthenticationEntryPoint entryPoint,
-                                           CustomAccessDeniedHandler denied,
-                                           SuspensionGuardFilter suspensionGuardFilter) throws Exception {
-
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                // Postman/프론트 초기 통신 편의를 위해 CSRF 일단 비활성화
                 .csrf(csrf -> csrf.disable())
-                .httpBasic(b -> b.disable())
-                .formLogin(f -> f.disable())
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                // 인가 규칙 병합본
-                .authorizeHttpRequests(auth -> {
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/health",
+                                "/auth/**",
+                                "/api/admin/**",
+                                "/static/**"
+                        ).permitAll()
+                        .anyRequest().permitAll()
+                );
 
-                    auth.requestMatchers(
-                            "/", "/index.html",
-                            "/health",
-                            "/auth/**",
-                            "/api/contents/**",
-                            "/auth-test.html", "/jwt-check.html",
-                            "/static/**", "/favicon.ico",
-                            "/v3/api-docs/**", "/swagger-ui/**", "/sessions/**","/swagger-ui.html", "/checkins/**",
-                            "/api/public/password-reset/**"
-                    ).permitAll();
-
-                    // 자가진단 공개 엔드포인트 (내 쪽에서 추가)
-                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments").permitAll();
-                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments/by-code/**").permitAll();
-                    auth.requestMatchers(HttpMethod.GET,  "/api/assessments/*/questions").permitAll();
-                    auth.requestMatchers(HttpMethod.PATCH,"/api/assessments/*/answers").permitAll();
-                    auth.requestMatchers(HttpMethod.POST, "/api/assessments/*/submit").permitAll();
-
-                    // 자가진단 결과 조회는 인증 필요 (내 쪽 로직 유지)
-                    auth.requestMatchers(HttpMethod.GET, "/api/assessments/*/results/**").authenticated();
-
-                    // 관리자 전용
-                    auth.requestMatchers("/api/admin/**").hasRole("ADMIN");
-
-                    // openMode 스위치 (develop)
-                    if (openMode) {
-                        auth.anyRequest().permitAll();                            // 개발모드: 전부 공개
-                    } else {
-                        auth.anyRequest().authenticated();                        // 보호모드: 인증 필요
-                    }
-                })
-
-                // 401/403 핸들러
-                .exceptionHandling(e -> e
-                        .authenticationEntryPoint(entryPoint)
-                        .accessDeniedHandler(denied)
-                )
-
-                // 필터 순서: JWT 인증 → 정지/탈퇴 가드
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(suspensionGuardFilter, JwtAuthenticationFilter.class);
+        // TODO: 보호 API 생기면 아래처럼 전환
+        // .authorizeHttpRequests(auth -> auth
+        //     .requestMatchers("/health", "/auth/**", "/static/**").permitAll()
+        //     .requestMatchers("/api/admin/**").hasRole("ADMIN")
+        //     .anyRequest().authenticated()
+        // )
+        // .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+        // .exceptionHandling(e -> e
+        //     .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+        //     .accessDeniedHandler(customAccessDeniedHandler)
+        // );
 
         return http.build();
     }
