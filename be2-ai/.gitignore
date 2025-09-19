@@ -1,15 +1,11 @@
 ﻿# ---- Python (BE2) ----
-**/.venv/
+be2-ai/.venv/
+be2-ai/__pycache__/
 **/__pycache__/
-**/*.pyc
+*.pyc
 be2-ai/hf_cache/
 be2-ai/torch_cache/
 be2-ai/logs/
-be2-ai/.pytest_cache/
-be2-ai/.mypy_cache/
-be2-ai/.ruff_cache/
-be2-ai/*.pem
-be2-ai/result.json
 .env
 
 # ---- Java/Gradle (BE1) ----
@@ -23,10 +19,10 @@ logs/
 # IDE
 .idea/
 *.iml
-.vscode/
+.project
+.classpath
+.settings/
 
 # OS
 .DS_Store
 Thumbs.db
-
-rewrite.txt
