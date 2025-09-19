@@ -1,5 +1,7 @@
 package com.example.hyu.service;
 
+import com.example.hyu.dto.user.ProfileChatMessageDto;
+import com.example.hyu.dto.user.ProfileChatSummaryDto;
 import com.example.hyu.dto.user.ProfileResponse;
 import com.example.hyu.dto.user.ProfileUpdateRequest;
 import com.example.hyu.entity.Profile;
@@ -10,13 +12,18 @@ import com.example.hyu.enums.ProfileTone;
 import com.example.hyu.repository.ProfileConcernRepository;
 import com.example.hyu.repository.ProfileGoalRepository;
 import com.example.hyu.repository.ProfileRepository;
+import com.example.hyu.repository.chat.ChatMessageRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +32,8 @@ public class ProfileServiceImpl implements ProfileService {
     private final ProfileRepository profileRepo;
     private final ProfileConcernRepository concernRepo;
     private final ProfileGoalRepository goalRepo;
+    // ⬇️ 추가: 프로필 화면에서 채팅을 보여주기 위한 메시지 조회
+    private final ChatMessageRepository messages;
 
     /**
      * Retrieves the profile for the given user ID, returning a ProfileResponse that includes
@@ -138,5 +147,40 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         return getMyProfile(userId);
+    }
+
+    // -------------------- Added for profile chat view --------------------
+
+    @Override
+    public Page<ProfileChatMessageDto> getMyRecentChatMessages(Long userId, Pageable pageable) {
+        return messages.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                .map(m -> new ProfileChatMessageDto(
+                        m.getId(),
+                        m.getSession().getId(),
+                        m.getRole().name(),
+                        m.getContent(),
+                        m.getCreatedAt()
+                ));
+    }
+
+    @Override
+    public List<ProfileChatSummaryDto> getMyLatestPerSession(Long userId, Pageable pageable) {
+        // 간단 구현: 최신 메시지 피드에서 세션별 첫 등장(=그 세션의 최신 메시지)만 추림
+        var page = messages.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        return page.getContent().stream()
+                .collect(Collectors.toMap(
+                        m -> m.getSession().getId(),
+                        m -> m,
+                        (a, b) -> a, // 이미 최신인 a 유지
+                        LinkedHashMap::new
+                ))
+                .values().stream()
+                .map(m -> new ProfileChatSummaryDto(
+                        m.getSession().getId(),
+                        m.getRole().name(),
+                        m.getContent(),
+                        m.getCreatedAt()
+                ))
+                .toList();
     }
 }
