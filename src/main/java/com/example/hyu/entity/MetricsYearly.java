@@ -1,11 +1,9 @@
-// MetricsYearly.java
 package com.example.hyu.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.time.LocalDate;
 
 @Getter @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE) @Builder
@@ -14,27 +12,44 @@ import java.time.LocalDate;
 public class MetricsYearly {
 
     @Id
-    @Column(name = "기준 연도", nullable = false)
-    private LocalDate year; // 예: 2025-01-01
+    @Column(name = "year", nullable = false)
+    private Integer year;
+    // PK: 연도 (예: 2025)
 
-    @Column(name = "연간 활성 사용자 합계")
+    @Column(name = "yearly_active_users")
     private Long yearlyActiveUsers;
+    // 연간 활성 사용자 수 (YAU, 고유)
 
-    @Column(name = "연 신규 가입 수")
+    @Column(name = "yearly_new_signups")
     private Long yearlyNewSignups;
+    // 연간 신규 가입자 수
 
-    @Column(name = "연 AI 상담 세션 수")
-    private Long yearlyAiSessions;
+    @Column(name = "yearly_ai_active_users")
+    private Long yearlyAiActiveUsers;
+    // 연간 AI 상담 이용자 수 (고유)
 
-    @Column(name = "평균 세션 길이", precision = 10, scale = 2)
+    @Column(name = "avg_session_length_seconds", precision = 10, scale = 2)
     private BigDecimal avgSessionLengthSeconds;
+    // 연 평균 세션 길이(초)
 
-    @Column(name = "HIGH 이벤트 수")
-    private Long highEventCount;
+    // 위험 이벤트 단계별 연 집계
+    @Column(name = "mild_event_count")
+    private Long mildEventCount;
 
-    @Column(name = "일일 체크인 수")
-    private Long dailyCheckinCount;
+    @Column(name = "moderate_event_count")
+    private Long moderateEventCount;
 
-    @Column(name = "생성일시")
-    private Instant createdAt;
+    @Column(name = "risk_event_count")
+    private Long riskEventCount;
+
+    @Column(name = "high_risk_event_count")
+    private Long highRiskEventCount;
+
+    @Column(name = "yearly_checkin_count")
+    private Long yearlyCheckinCount;
+    // 연간 자가진단 완료 건수
+
+    @Column(name = "computed_at", nullable = false)
+    private Instant computedAt;
+    // 집계가 생성된 시각
 }
