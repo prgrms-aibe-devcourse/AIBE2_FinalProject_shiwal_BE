@@ -1,6 +1,7 @@
 package com.example.hyu.dto.assessment.admin;
 
 import com.example.hyu.entity.AssessmentSubmission;
+import com.example.hyu.enums.RiskLevel;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
@@ -12,7 +13,7 @@ import jakarta.validation.constraints.NotNull;
 public record CmsRangeUpsertReq(
         @NotNull @Min(0) Integer minScore,   // 구간 시작(포함)
         @NotNull @Min(0) Integer maxScore,   // 구간 끝(포함)
-        AssessmentSubmission.RiskLevel level,       // 위험도 코드
+        RiskLevel level,       // 위험도 코드
         String labelKo,     // 위험도 라벨 (약함/중간/위험/초위험)
         String summaryKo,   // 요약 문구
         String adviceKo     // 권고 문구 (자세한 설명)

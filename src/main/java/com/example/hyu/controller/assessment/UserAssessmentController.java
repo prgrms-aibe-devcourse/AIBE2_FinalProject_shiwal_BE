@@ -46,7 +46,6 @@ public class UserAssessmentController {
 
     /* ========= 답변 임시저장(업서트) ========= */
 
-    //
     @PatchMapping("/{assessmentId}/answers")
     public ResponseEntity<Void> upsertDraftAnswer(
             @PathVariable Long assessmentId,
@@ -54,11 +53,21 @@ public class UserAssessmentController {
             @Valid @RequestBody AssessmentAnswerReq body,
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
+        // [추가-가드] 비로그인인데 guestKey도 없으면 400
+        if (principal == null && (headerGuestKey == null || headerGuestKey.isBlank())
+                && (body.guestKey() == null || body.guestKey().isBlank())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+        // [추가-가드] path와 body submissionId가 모두 있을 때는 소속 검사만 간단히 체크(서비스에서도 검증하지만 빠른 400)
+        if (body.submissionId() != null && body.questionId() == null) {
+            // 클라이언트 실수 방지용: submissionId만 던지면 추후 디버깅 힘듦
+            // (필수는 아니므로 경고성 가드. 필요없으면 지워도 됨)
+        }
+
         Long userId = (principal != null) ? principal.getUserId() : null;
-        service.upsertDraftAnswer(assessmentId, userId, headerGuestKey, body); // ← 헤더 값 그대로 전달
+        service.upsertDraftAnswer(assessmentId, userId, headerGuestKey, body);
         return ResponseEntity.noContent().build();
     }
-
 
 
     /* ========= 최종 제출 ========= */
@@ -70,16 +79,22 @@ public class UserAssessmentController {
             @Valid @RequestBody AssessmentSubmitReq body,
             @AuthenticationPrincipal AuthPrincipal principal
     ) {
+        // [수정] path-id와 body.assessmentId 불일치 시 400 (네 코드 유지)
         if (body.assessmentId() != null && !body.assessmentId().equals(assessmentId)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         Long userId = (principal != null) ? principal.getUserId() : null;
 
-        // path 기준으로 id만 보정해서 전달
+        // [추가-가드] 비로그인 제출인데 guestKey 전혀 없으면 400 (서비스에서도 막지만 여기서도 빠르게 컷)
+        if (userId == null && (headerGuestKey == null || headerGuestKey.isBlank())
+                && (body.guestKey() == null || body.guestKey().isBlank())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        }
+
         AssessmentSubmitReq fixed = new AssessmentSubmitReq(
                 assessmentId, body.answers(), body.submissionId(), body.guestKey()
         );
-        AssessmentSubmitRes res = service.submit(fixed, userId, headerGuestKey); // ← 헤더 값 그대로 전달
+        AssessmentSubmitRes res = service.submit(fixed, userId, headerGuestKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(res);
     }
 

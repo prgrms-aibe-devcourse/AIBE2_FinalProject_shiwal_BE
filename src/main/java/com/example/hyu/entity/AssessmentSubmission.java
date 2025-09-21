@@ -1,5 +1,6 @@
 package com.example.hyu.entity;
 
+import com.example.hyu.enums.RiskLevel;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -28,9 +29,6 @@ public class AssessmentSubmission extends BaseTimeEntity { // 제출/결과
 
     // 제출 상태
     public enum Status { DRAFT, SUBMITTED }
-
-    // 위험도 단계
-    public enum RiskLevel { MILD, MODERATE, RISK, HIGH_RISK }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
