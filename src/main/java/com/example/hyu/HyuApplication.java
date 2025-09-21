@@ -13,7 +13,6 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 @SpringBootApplication
 @EnableCaching //캐시 기능 활성화
 @EnableConfigurationProperties(JwtProperties.class)
-
 @EnableScheduling
 @EnableMethodSecurity(prePostEnabled = true) //메서드 보안 활성화
 public class HyuApplication {

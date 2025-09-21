@@ -13,10 +13,10 @@ public interface GoalCheckinRepository extends JpaRepository<GoalCheckin, Long> 
     // ---------오늘 체크 여부 판정에 쓰는 핵심 메서드---------
 
     //해당 목표가 특정 날짜에 체크되었는지 여부 (오늘 체크 판단용)
-    boolean existsByGoalIdAndCheckinDate(Long goalId, LocalDate checkinDate);
+    boolean existsByGoal_IdAndCheckinDate(Long goalId, LocalDate checkinDate);
 
     // 체크 취소 (실수 복구) - 특정 날짜의 체크인  레코드 삭제
-    void deleteByGoalIdAndCheckinDate(Long goalId, LocalDate checkinDate);
+    void deleteByGoal_IdAndCheckinDate(Long goalId, LocalDate checkinDate);
 
 
     // --------- 조회/ 집계에 편한 보조 메서드

@@ -1,5 +1,6 @@
-package com.example.hyu.service;
+package com.example.hyu.service.goal;
 
+import com.example.hyu.dto.SliceResponse;
 import com.example.hyu.dto.goal.GoalRequest;
 import com.example.hyu.dto.goal.GoalResponse;
 import com.example.hyu.dto.goal.GoalCheckinResponse;
@@ -9,6 +10,8 @@ import com.example.hyu.repository.goal.GoalCheckinRepository;
 import com.example.hyu.repository.goal.GoalRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,10 +57,13 @@ public class GoalService {
     }
 
     /** 내 목표 전체 조회 */
-    public List<GoalResponse> getGoals(Long userId) {
-        return goalRepository.findAllByUserIdAndDeletedFalse(userId).stream()
-                .map(GoalResponse::fromEntity)
-                .toList();
+    public SliceResponse<GoalResponse> getGoals(Long userId, int page, int size) {
+        LocalDate today = LocalDate.now(ZONE_SEOUL);
+        Pageable pageable = PageRequest.of(page, size);
+        var slice = goalRepository
+                .findSliceForList(userId, today, pageable) // 상태 기반 정렬 쿼리 호출
+                .map(GoalResponse::fromEntity);
+        return SliceResponse.from(slice);
     }
 
     /** 목표 수정 */
@@ -103,9 +109,9 @@ public class GoalService {
             throw new IllegalStateException("기간 외에는 체크 불가");
         }
 
-        boolean exists = checkinRepository.existsByGoalIdAndCheckinDate(goalId, today);
+        boolean exists = checkinRepository.existsByGoal_IdAndCheckinDate(goalId, today);
         if (!exists) {
-            checkinRepository.save(
+            checkinRepository.saveAndFlush(
                     GoalCheckin.builder()
                             .goal(goal)
                             .checkinDate(today)
@@ -121,7 +127,7 @@ public class GoalService {
                 .orElseThrow(() -> new EntityNotFoundException("Goal not found"));
 
         LocalDate today = LocalDate.now(ZONE_SEOUL);
-        checkinRepository.deleteByGoalIdAndCheckinDate(goalId, today);
+        checkinRepository.deleteByGoal_IdAndCheckinDate(goalId, today);
     }
 
     /** 주간/월간 기록 조회 */

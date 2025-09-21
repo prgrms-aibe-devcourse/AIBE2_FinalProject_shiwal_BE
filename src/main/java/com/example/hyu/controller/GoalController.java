@@ -1,10 +1,12 @@
 package com.example.hyu.controller;
 
+import com.example.hyu.dto.SliceResponse;
 import com.example.hyu.dto.goal.GoalRequest;
 import com.example.hyu.dto.goal.GoalResponse;
 import com.example.hyu.dto.goal.GoalCheckinResponse;
-import com.example.hyu.service.GoalService;
+import com.example.hyu.service.goal.GoalService;
 import com.example.hyu.security.AuthPrincipal;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -26,14 +28,16 @@ public class GoalController {
     /** 목표 생성 */
     @PostMapping
     public GoalResponse createGoal(@AuthenticationPrincipal AuthPrincipal user,
-                                   @RequestBody GoalRequest dto) {
+                                   @RequestBody @Valid GoalRequest dto) {
         return goalService.createGoal(user.getUserId(), dto);
     }
 
     /** 내 목표 전체 조회 */
     @GetMapping
-    public List<GoalResponse> getGoals(@AuthenticationPrincipal AuthPrincipal user) {
-        return goalService.getGoals(user.getUserId());
+    public SliceResponse<GoalResponse> getGoals(@AuthenticationPrincipal AuthPrincipal user,
+                                                @RequestParam(defaultValue = "0") int page,
+                                                @RequestParam(defaultValue = "10") int size) {
+        return goalService.getGoals(user.getUserId(), page, size);
     }
 
     /** 목표 단건 상세 조회 */
@@ -47,7 +51,7 @@ public class GoalController {
     @PutMapping("/{goalId}")
     public GoalResponse updateGoal(@AuthenticationPrincipal AuthPrincipal user,
                                    @PathVariable Long goalId,
-                                   @RequestBody GoalRequest dto) {
+                                   @RequestBody @Valid GoalRequest dto) {
         return goalService.updateGoal(goalId, user.getUserId(), dto);
     }
 

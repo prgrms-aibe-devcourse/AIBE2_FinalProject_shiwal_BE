@@ -21,6 +21,8 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @org.hibernate.annotations.Check(constraints = "selected_value BETWEEN 0 AND 3") //점수값 범위(0~3) 보장
+@ToString(exclude = {"submission", "question"})  //순환 방지
+@EqualsAndHashCode(of = "id") // id 기준 동등성
 public class AssessmentAnswer extends BaseTimeEntity { //사용자가 각 문항에서 선택한 문항을 나타내는 엔티티
 
     @Id
@@ -35,7 +37,7 @@ public class AssessmentAnswer extends BaseTimeEntity { //사용자가 각 문항
 
     @Column(length=100)
     private String rawAnswer;
-    // 사람이 읽는 선택지 라벨(예: 전혀 아니다) 등 저장하고 싶으면 사용, 필수 아님
+    // 사람이 읽는 선택지 라벨(예: 전혀 아니다) 등
 
     @ManyToOne(fetch=FetchType.LAZY)
     @JoinColumn(name="submission_id", nullable=false)
@@ -58,6 +60,7 @@ public class AssessmentAnswer extends BaseTimeEntity { //사용자가 각 문항
         this.rawAnswer = raw;
     }
 
+    // 양방향 연결 편의
     public void attachTo(AssessmentSubmission submission){
         this.submission = submission;
         submission.getAnswers().add(this);

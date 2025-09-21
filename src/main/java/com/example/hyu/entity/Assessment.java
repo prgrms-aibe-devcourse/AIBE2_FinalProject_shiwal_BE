@@ -25,40 +25,41 @@ import java.util.List;
 @AllArgsConstructor @Builder
 public class Assessment extends BaseTimeEntity {
 
-    public enum Status { ACTIVE, ARCHIVED }
+    public enum Status { DRAFT, ACTIVE, ARCHIVED }  // 검사 공개 상태
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable=false, unique=true, length=50)
-    private String code;
+    private String code;  // 검사 코드
 
     @Column(nullable=false, length=100)
-    private String name;
+    private String name;  // 검사명
 
     @Column(nullable=false, length=50)
-    private String category;
+    private String category;  // 카테고리 (예ㅣ 집중 & 습관)
 
     @Lob
-    private String description;
+    private String description;  // 설명
 
     @Enumerated(EnumType.STRING)
     @Column(nullable=false, length=10)
     @Builder.Default
-    private Status status = Status.ACTIVE;
+    private Status status = Status.ACTIVE;  // 현재 상태(기본 ACTIVE)
 
     @OneToMany(mappedBy="assessment", cascade=CascadeType.ALL, orphanRemoval=true)
     @OrderBy("orderNo ASC")
     @Builder.Default
-    private List<AssessmentQuestion> questions = new ArrayList<>();
+    private List<AssessmentQuestion> questions = new ArrayList<>();  // 소속 문항들
 
     @Column(name="is_deleted", nullable=false)
     @Builder.Default
-    private boolean isDeleted = false;
+    private boolean isDeleted = false;  // 소프트 삭제 플래그
 
     @Column(name="deleted_at")
-    private Instant deletedAt;
+    private Instant deletedAt;  // 삭제 시각
 
+    // 소프트 삭제 복구
     public void restore() {
         this.isDeleted = false;
         this.deletedAt = null;
