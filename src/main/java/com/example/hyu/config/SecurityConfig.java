@@ -70,7 +70,7 @@ class SecurityConfig {
                             "/api/contents/**",
                             "/auth-test.html", "/jwt-check.html",
                             "/static/**", "/favicon.ico",
-                            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+                            "/v3/api-docs/**", "/swagger-ui/**", "/sessions/**","/swagger-ui.html", "/checkins/**",
                             "/api/public/password-reset/**"
                     ).permitAll();
 
