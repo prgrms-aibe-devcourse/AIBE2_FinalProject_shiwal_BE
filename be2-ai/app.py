@@ -21,7 +21,6 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from fastapi.testclient import TestClient
 
-
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from transformers.utils import logging as hf_logging
@@ -80,11 +79,15 @@ DB_CFG = {
     "password": os.getenv("HUE_DB_PASS", "") or None,
     "database": os.getenv("HUE_DB_NAME", "hue"),
 }
+# ➕ 채팅 로그 테이블명 (기본: ai_chat_messages)
+CHAT_TABLE = os.getenv("HUE_CHAT_TABLE", "ai_chat_messages")
+
 try:
     import pymysql  # type: ignore
     _has_pymysql = True
 except Exception:
     _has_pymysql = False
+
 
 class DBLogger:
     def __init__(self, cfg: Dict[str, Any]):
@@ -110,7 +113,8 @@ class DBLogger:
 
     def log_crisis(self, user_id: Optional[int], session_id: str, text: str,
                    kw_score: int, risk: str, reasons: List[str], templated: bool):
-        if not self.enabled: return
+        if not self.enabled:
+            return
         try:
             h = hashlib.sha256(text.encode("utf-8")).hexdigest()
             with self.conn.cursor() as cur:
@@ -126,18 +130,20 @@ class DBLogger:
 
     def log_chat(self, user_id: Optional[int], session_id: str, message: str,
                  reply: str, safety_flags: List[str]):
-        if not self.enabled: return
+        if not self.enabled:
+            return
         try:
             with self.conn.cursor() as cur:
                 cur.execute(
-                    """
-                    INSERT INTO chat_messages (user_id, session_id, message, reply, safety_flags)
+                    f"""
+                    INSERT INTO {CHAT_TABLE} (user_id, session_id, message, reply, safety_flags)
                     VALUES (%s,%s,%s,%s,%s)
                     """,
                     (user_id, session_id, message, reply, json.dumps(safety_flags, ensure_ascii=False))
                 )
         except Exception:
             pass
+
 
 DB = DBLogger(DB_CFG)
 
@@ -205,11 +211,13 @@ class AnalyzeIn(BaseModel):
     mood_slider: Optional[int] = Field(None, ge=0, le=100)
     tags: Optional[List[str]] = Field(default=None)
 
+
 class AnalyzeOut(BaseModel):
     score: int = Field(..., ge=0, le=100)
     summary: str = Field(..., min_length=1, max_length=480)
     tags: List[str] = Field(default_factory=list, max_items=5)
     caution: bool
+
 
 class ChatIn(BaseModel):
     session_id: str = Field(..., min_length=1, max_length=200)
@@ -217,13 +225,17 @@ class ChatIn(BaseModel):
     context: Optional[List[str]] = None
     user_id: Optional[int] = None
 
+
 class ChatOut(BaseModel):
     reply: str
     safetyFlags: List[str] = Field(default_factory=list)
 
+
 class OAIMsg(BaseModel):
     role: str
     content: str
+
+
 class OAIChatReq(BaseModel):
     model: Optional[str] = None
     messages: List[OAIMsg]
@@ -234,17 +246,21 @@ class OAIChatReq(BaseModel):
     stop: Optional[List[str]] = None
     user: Optional[str] = None
 
+
 # ===================== 공통 유틸 =====================
 def require_api_key(x_api_key: Optional[str] = Header(default=None)):
     if HUE_API_KEY and x_api_key != HUE_API_KEY:
         raise HTTPException(status_code=401, detail="invalid api key")
     return True
 
+
 def clamp(n: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, int(n)))
 
+
 def _truncate(txt: str, limit: int = 3000) -> str:
     return txt[:limit]
+
 
 # -------- 텍스트 정리(라이트) --------
 _HANJA_RE_ALL = re.compile(r"[\u3400-\u9FFF]")  # CJK 통합 한자 전범위
@@ -254,8 +270,10 @@ _MD_LIST_RE = re.compile(r"^\s*(?:[\-\*\•]|[0-9]+\.)\s+", re.M)
 _MD_HDR_RE = re.compile(r"^\s*#{1,6}\s*", re.M)
 _META_NOISE_RE = re.compile(r"(한글만\s*\(|\b문장\s*[:：]|\b결과\s*[:：]|\b요약\s*[:：]|\b출력\s*[:：]|```|\[[^\]]+\]\([^)]+\))")
 
+
 def strip_markdown_noise(s: str) -> str:
-    if not s: return s
+    if not s:
+        return s
     s = _MD_FENCE_RE.sub(" ", s)
     s = _MD_INLINE_RE.sub(" ", s)
     s = _MD_LIST_RE.sub("", s)
@@ -263,17 +281,21 @@ def strip_markdown_noise(s: str) -> str:
     s = re.sub(r"\[(?:[^\]]+)\]\([^)]+\)", " ", s)
     return s
 
+
 def drop_meta_chunks(s: str) -> str:
-    if not s: return s
+    if not s:
+        return s
     s = re.sub(r"한글만\s*\([^)]*\)", " ", s)
     s = re.sub(r"(문장|결과|요약|출력)\s*[:：]\s*", " ", s)
     sents = re.split(r"[.!?…\n]+", s)
     kept = [t.strip() for t in sents if t.strip() and not _META_NOISE_RE.search(t)]
     return " ".join(kept).strip()
 
+
 def split_sentences_ko(s: str) -> List[str]:
     parts = re.split(r"[.!?…\n]+", s)
     return [p.strip() for p in parts if p and p.strip()]
+
 
 def sanitize_korean_strict(s: str, *, max_sent: int = 3, fallback: Optional[str] = None) -> str:
     if not s:
@@ -286,7 +308,8 @@ def sanitize_korean_strict(s: str, *, max_sent: int = 3, fallback: Optional[str]
     kept = []
     for t in sents:
         t = re.sub(r"\s+", " ", t).strip()
-        if not t: continue
+        if not t:
+            continue
         kept.append(t)
     if not kept and fallback:
         kept = [fallback]
@@ -297,12 +320,17 @@ def sanitize_korean_strict(s: str, *, max_sent: int = 3, fallback: Optional[str]
     out = re.sub(r"\s{2,}", " ", out).strip()
     return out
 
+
 def looks_non_displayable(s: str) -> bool:
-    if not s: return True
+    if not s:
+        return True
     core = re.findall(r"[가-힣A-Za-z0-9]", s)
-    if len(core) == 0: return True
-    if s.count("?") >= max(3, len(s) // 2): return True
+    if len(core) == 0:
+        return True
+    if s.count("?") >= max(3, len(s) // 2):
+        return True
     return False
+
 
 def ko_text_fix(s: str) -> str:
     if not s:
@@ -311,27 +339,33 @@ def ko_text_fix(s: str) -> str:
     s = re.sub(r"\s{2,}", " ", s).strip()
     return s
 
+
 # ---- 태그 보정 ----
 def fix_tags_list(tags: List[str]) -> List[str]:
-    mapping = {"불난":"불안","걱장":"걱정","면접기":"면접","수면저하":"수면"}
+    mapping = {"불난": "불안", "걱장": "걱정", "면접기": "면접", "수면저하": "수면"}
     pool = []
     for t in (tags or []):
         t = str(t)
-        parts = re.split(r"[^\w가-힣]+", t.replace("，",",").replace("、",",").replace(".",","))
+        parts = re.split(r"[^\w가-힣]+", t.replace("，", ",").replace("、", ",").replace(".", ","))
         for p in parts:
             p = p.strip()
-            if not p: continue
+            if not p:
+                continue
             p = mapping.get(p, p)
             p = re.sub(r"[^가-힣0-9]", "", p)[:12]
-            if not p: continue
-            if _HANJA_RE_ALL.search(p): continue
+            if not p:
+                continue
+            if _HANJA_RE_ALL.search(p):
+                continue
             pool.append(p)
     out = []
     for p in pool:
         if p and p not in out:
             out.append(p)
-        if len(out) >= 5: break
+        if len(out) >= 5:
+            break
     return out
+
 
 # -------- JSON 추출(관대) --------
 def extract_json_balanced(s: str) -> dict:
@@ -350,13 +384,14 @@ def extract_json_balanced(s: str) -> dict:
             elif s[i] == "}":
                 stack -= 1
                 if stack == 0:
-                    candidate = s[start:i+1]
+                    candidate = s[start:i + 1]
                     try:
                         return json.loads(candidate)
                     except Exception:
                         break
         start = s.find("{", start + 1)
     return {}
+
 
 # ===================== 위기 감지 =====================
 SEVERITY_DICT = {
@@ -388,14 +423,17 @@ REASON_MAP = {
     "self-harm": "자가 손상 표현"
 }
 
+
 def _remove_all_unicode_spaces(s: str) -> str:
     return re.sub(r"[\u0009-\u000D\u0020\u0085\u00A0\u1680\u180E\u2000-\u200A\u2028\u2029\u202F\u205F\u3000]", "", s)
+
 
 def _normalize_ko(s: str) -> str:
     s = s.lower()
     s = _remove_all_unicode_spaces(s)
     s = re.sub(r"[\u200b\u200c\u200d]", "", s)
     return s
+
 
 STRICT_PATTERNS = [
     r"자\s*살", r"극\s*단\s*선\s*택",
@@ -404,18 +442,23 @@ STRICT_PATTERNS = [
     r"사람\s*을?\s*죽이", r"사람\s*을?\s*해치"
 ]
 
+
 def strict_match(text: str) -> bool:
-    if not text: return False
+    if not text:
+        return False
     t = unicodedata.normalize("NFKC", text)
     no_space = _remove_all_unicode_spaces(t.lower())
     for p in STRICT_PATTERNS:
         try:
-            if re.search(p, t, re.I): return True
+            if re.search(p, t, re.I):
+                return True
             pp = re.sub(r"\s+", "", p)
-            if re.search(pp, no_space, re.I): return True
+            if re.search(pp, no_space, re.I):
+                return True
         except Exception:
             continue
     return False
+
 
 def detect_crisis_keywords(text: str) -> Dict[str, Any]:
     t = (text or "")
@@ -424,19 +467,24 @@ def detect_crisis_keywords(text: str) -> Dict[str, Any]:
     hits, score = [], 0
     for kw, w in SEVERITY_DICT.items():
         if (" " in kw and kw in t_low) or (kw.replace(" ", "") in t_compact):
-            hits.append(kw); score += w
+            hits.append(kw)
+            score += w
     if strict_match(t) and score < 3:
         score = 3
         if "죽고 싶" not in hits:
             hits.append("죽고 싶")
     return {"score": score, "hits": sorted(set(hits))}
 
+
 def decide_crisis(kw_score: int, risk: str, policy: str) -> bool:
-    if kw_score >= 3: return True
-    if risk == "high": return True
+    if kw_score >= 3:
+        return True
+    if risk == "high":
+        return True
     if policy != "high_only":
         return risk == "medium" and kw_score >= 1
     return False
+
 
 # ------------- 생성 유틸 -------------
 def _safe_generate(inputs, *, max_new_tokens: int, temperature: float, top_p: float,
@@ -481,11 +529,14 @@ def _safe_generate(inputs, *, max_new_tokens: int, temperature: float, top_p: fl
             msg = str(e)
             if ("CUDA out of memory" in msg) or ("cublas" in msg) or ("cuDNN" in msg):
                 try:
-                    if torch.cuda.is_available(): torch.cuda.empty_cache()
-                except Exception: pass
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                except Exception:
+                    pass
                 continue
             break
     raise last_err if last_err else RuntimeError("generation failed")
+
 
 def chat_llm(user_content: str, system_content: Optional[str] = SYSTEM_PROMPT,
              temperature: float = 0.6, max_new_tokens: int = 160, top_p: float = 0.9) -> str:
@@ -501,11 +552,13 @@ def chat_llm(user_content: str, system_content: Optional[str] = SYSTEM_PROMPT,
     gen = outputs[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(gen, skip_special_tokens=True).strip()
 
+
 def gen_plain(prompt: str, *, max_new_tokens: int = 220, temperature: float = 0.0, top_p: float = 1.0) -> str:
     inputs = tokenizer(prompt, return_tensors="pt", truncation=True).to(model.device)
     outputs = _safe_generate(inputs, max_new_tokens=max_new_tokens, temperature=temperature, top_p=top_p)
     gen = outputs[0][inputs["input_ids"].shape[-1]:]
     return tokenizer.decode(gen, skip_special_tokens=True).strip()
+
 
 def chat_llm_messages(messages: List[Dict[str, str]],
                       temperature: float = 0.6,
@@ -539,13 +592,17 @@ def chat_llm_messages(messages: List[Dict[str, str]],
     completion_tokens = int(gen_ids.shape[-1])
     return reply, prompt_tokens, completion_tokens
 
+
 # ===================== 코치 안전 멘트(위기 보조) =====================
 _BAD_DETAIL = re.compile(
     r"(방법|도구|계획|용량|mg|밀리그램|칼|번개탄|가스|목|질식|뛰어내리|목매|철로|다리|치명|자상)",
     re.I
 )
+
+
 def _contains_banned_detail(s: str) -> bool:
     return bool(_BAD_DETAIL.search(s or ""))
+
 
 def safe_coach_reply(user_msg: str) -> str:
     try:
@@ -572,6 +629,7 @@ def safe_coach_reply(user_msg: str) -> str:
     except Exception:
         return ""
 
+
 # ===================== 템플릿 =====================
 def crisis_template_reply() -> str:
     return (
@@ -579,6 +637,7 @@ def crisis_template_reply() -> str:
         "지금 당장 1) 주변의 위험한 물건을 치우고 2) 믿을 수 있는 사람이나 도움 창구에 연락하세요.\n\n"
         "긴급 도움이 필요하면 112/119/1393(자살예방핫라인)에 연락하세요."
     )
+
 
 # ===================== 다양화: 의도별 즉시 행동 뱅크 =====================
 ACTION_BANK = {
@@ -625,6 +684,7 @@ ACTION_BANK = {
     ],
 }
 
+
 def pick_actions(intent: str, k: int = 1) -> list:
     pool = ACTION_BANK.get(intent) or ACTION_BANK.get("default", [])
     if not pool:
@@ -637,15 +697,18 @@ def pick_actions(intent: str, k: int = 1) -> list:
         arr.remove(choice)
     return out
 
+
 # ===================== 최종 정리/스타일 보정 =====================
 def is_actionable(s: str) -> bool:
     return bool(re.search(r"(타이머|지금|오늘|\d+\s*분|\d+\s*초|\d+\s*회|해보|시도해|켜보|끄)", s))
+
 
 def _strip_greeting_and_identity(s: str) -> str:
     s = re.sub(r"^(안녕하세요|안녕|하이)[^.\n]*[.\n]\s*", "", s.strip(), flags=re.I)
     s = re.sub(r"^(저는|나는|AI|인공지능|상담사|도우미)[^.\n]*[.\n]\s*", "", s.strip(), flags=re.I)
     s = re.sub(r"(저는|저희|이 모델은|본 시스템은)[^.\n]*입니다[.\n]\s*", "", s)
     return s.strip()
+
 
 def finalize_reply(user_text: str, reply: str, *, intent: str = "help_request",
                    fallback: str = "지금 3분만 호흡을 가다듬고, 가장 쉬운 한 가지를 5분만 시작해봐요.") -> str:
@@ -665,6 +728,7 @@ def finalize_reply(user_text: str, reply: str, *, intent: str = "help_request",
     txt = ko_text_fix(txt)
     return txt
 
+
 # ===================== 분석/태깅 유틸 =====================
 def gen_number_0_100(text: str) -> Optional[int]:
     prompt = (
@@ -675,9 +739,11 @@ def gen_number_0_100(text: str) -> Optional[int]:
     )
     out = gen_plain(prompt, max_new_tokens=8, temperature=0.0, top_p=1.0)
     m = re.search(r"\b(\d{1,3})\b", out or "")
-    if not m: return None
+    if not m:
+        return None
     val = int(m.group(1))
     return clamp(val, 0, 100)
+
 
 def safe_score(text: str) -> int:
     try:
@@ -685,6 +751,7 @@ def safe_score(text: str) -> int:
         return clamp(int(n if n is not None else 50), 0, 100)
     except Exception:
         return 50
+
 
 def gen_summary_2lines(text: str) -> str:
     prompt = (
@@ -702,6 +769,7 @@ def gen_summary_2lines(text: str) -> str:
         s = "핵심은 스트레스와 수면문제 신호예요. 10분 타이머를 켜고 한 가지부터 시작해요."
     return s[:460]
 
+
 def gen_tags_csv(text: str) -> List[str]:
     prompt = (
         "다음 텍스트의 주제 태그를 한국어 1~5개로 추출해 쉼표로만 구분해 출력하세요.\n"
@@ -717,13 +785,16 @@ def gen_tags_csv(text: str) -> List[str]:
         p = p[:12]
         if p and p not in uniq:
             uniq.append(p)
-        if len(uniq) >= 5: break
+        if len(uniq) >= 5:
+            break
     if not uniq:
-        for k in ["불안","수면","면접","걱정","피로","집중","우울","긴장","스트레스","휴식"]:
+        for k in ["불안", "수면", "면접", "걱정", "피로", "집중", "우울", "긴장", "스트레스", "휴식"]:
             if k in text and k not in uniq:
                 uniq.append(k)
-            if len(uniq) >= 5: break
+            if len(uniq) >= 5:
+                break
     return fix_tags_list(uniq)
+
 
 def safe_tags(text: str) -> List[str]:
     try:
@@ -731,9 +802,10 @@ def safe_tags(text: str) -> List[str]:
     except Exception:
         tags = []
     if not tags:
-        seeds = ["불안","수면","스트레스","걱정","휴식"]
+        seeds = ["불안", "수면", "스트레스", "걱정", "휴식"]
         tags = [k for k in seeds if k in text] or seeds[:3]
     return fix_tags_list(tags)
+
 
 @lru_cache(maxsize=1024)
 def llm_risk_screen_prompt() -> str:
@@ -748,6 +820,7 @@ def llm_risk_screen_prompt() -> str:
         "출력 예: <json>{\"risk\":\"medium\",\"reasons\":[\"죽고 싶다는 충동 언급\"]}</json>\n"
         "텍스트:\n"
     )
+
 
 def llm_risk_screen(text: str) -> Dict[str, Any]:
     prompt = llm_risk_screen_prompt() + _truncate(text, 2000) + "\n출력: <json>{...}</json>"
@@ -767,6 +840,7 @@ def llm_risk_screen(text: str) -> Dict[str, Any]:
     except Exception:
         return {"risk": "low", "reasons": []}
 
+
 # ===================== Intent =====================
 INTENT_RULES = {
     "safety_crisis": [r"자\s*살", r"극\s*단\s*선\s*택", r"죽\s*고\s*싶", r"뛰\s*어\s*내리", r"목\s*매", r"kill\s*myself", r"suicide"],
@@ -778,16 +852,19 @@ INTENT_RULES = {
     "help_request":  [r"도와줘|도움이\s*필요|어떻게\s*해야|힘들어"],
     "smalltalk":     [r"ㅋㅋ|ㅎㅎ|재밌|고양이|강아지|밈"],
 }
+
+
 def detect_intent_rule(text: str) -> Tuple[str, float, str]:
     t = _normalize_ko(text)
     for pat in INTENT_RULES["safety_crisis"]:
         if re.search(_remove_all_unicode_spaces(pat), t, re.I):
             return "safety_crisis", 0.99, "rule"
-    for name in ["sleep","interview","work","anger","food","help_request","smalltalk"]:
+    for name in ["sleep", "interview", "work", "anger", "food", "help_request", "smalltalk"]:
         for pat in INTENT_RULES[name]:
             if re.search(_remove_all_unicode_spaces(pat), t, re.I):
                 return name, 0.80, "rule"
     return "unknown", 0.50, "rule"
+
 
 def detect_intent_llm(text: str) -> Tuple[str, float, str]:
     prompt = (
@@ -801,13 +878,14 @@ def detect_intent_llm(text: str) -> Tuple[str, float, str]:
         m = re.search(r"<json>(\{.*?\})</json>", raw or "", re.S | re.I)
         if m:
             obj = json.loads(m.group(1))
-            intent = str(obj.get("intent","unknown"))
-            if intent not in {"safety_crisis","help_request","food","sleep","interview","smalltalk","anger","work","unknown"}:
+            intent = str(obj.get("intent", "unknown"))
+            if intent not in {"safety_crisis", "help_request", "food", "sleep", "interview", "smalltalk", "anger", "work", "unknown"}:
                 intent = "unknown"
             return intent, 0.8, "llm"
     except Exception:
         pass
     return "unknown", 0.5, "llm"
+
 
 # ===================== 엔드포인트 =====================
 @app.get("/health")
@@ -833,19 +911,22 @@ def health():
         info["device_name"] = torch.cuda.get_device_name(0) if cuda_ok and dev_count > 0 else "CPU"
     except Exception as e:
         info["device_name"] = f"GPU (unknown: {type(e).__name__})"
-    info["db"] = {"enabled": bool(DB.enabled), "err": DB.err}
+    info["db"] = {"enabled": bool(DB.enabled), "err": DB.err, "chat_table": CHAT_TABLE}
     info["policy"] = CRISIS_TEMPLATE_POLICY
     info["crisis_mode"] = CRISIS_MODE
     return JSONResponse(content=info, media_type="application/json; charset=utf-8")
+
 
 @app.get("/__ping")
 def ping():
     return JSONResponse(content={"pong": True, "version": APP_VERSION}, media_type="application/json; charset=utf-8")
 
+
 @app.get("/warmup", dependencies=[Depends(require_api_key)])
 def warmup():
     _ = chat_llm("간단히 한 문장으로 안부만 전해줘.")
     return JSONResponse(content={"warmed": True}, media_type="application/json; charset=utf-8")
+
 
 # ---- Admin: 정책 전환 (high_only | medium_high)
 @app.post("/admin/policy", dependencies=[Depends(require_api_key)])
@@ -853,6 +934,7 @@ def admin_policy(mode: str = Query(..., pattern="^(high_only|medium_high)$")):
     global CRISIS_TEMPLATE_POLICY
     CRISIS_TEMPLATE_POLICY = mode
     return JSONResponse(content={"ok": True, "policy": CRISIS_TEMPLATE_POLICY}, media_type="application/json; charset=utf-8")
+
 
 # ---- 디버그
 @app.get("/v1/debug/kw", dependencies=[Depends(require_api_key)])
@@ -863,6 +945,7 @@ def debug_kw(text: str = Query(..., max_length=4000)):
         "kw": kw, "llm_risk": llm, "policy": CRISIS_TEMPLATE_POLICY, "strict": strict_match(text)
     }, media_type="application/json; charset=utf-8")
 
+
 @app.get("/v1/debug/decision", dependencies=[Depends(require_api_key)])
 def debug_decision(text: str = Query(..., max_length=4000)):
     kw = detect_crisis_keywords(text)
@@ -871,6 +954,7 @@ def debug_decision(text: str = Query(..., max_length=4000)):
     return JSONResponse(content={
         "kw": kw, "llm_risk": llm, "policy": CRISIS_TEMPLATE_POLICY, "strict": strict_match(text), "template": decision
     }, media_type="application/json; charset=utf-8")
+
 
 # ---- 내부 스모크 테스트 헬퍼 ----
 def _smoke_eval() -> dict:
@@ -914,9 +998,11 @@ def _smoke_eval() -> dict:
         templated = "CRISIS_TEMPLATED" in flags or "CRISIS_STRICT_HIT" in flags
 
         if c["expect_templated"]:
-            if templated: ok_tpl += 1
+            if templated:
+                ok_tpl += 1
         else:
-            if not templated: ok_non += 1
+            if not templated:
+                ok_non += 1
 
         details.append({
             "sid": c["sid"],
@@ -943,7 +1029,6 @@ def tests_smoke():
     return JSONResponse(content=_smoke_eval(), media_type="application/json; charset=utf-8")
 
 
-
 # -------------------- Analyze --------------------
 @app.post("/v1/analyze", dependencies=[Depends(require_api_key)])
 def analyze(body: 'AnalyzeIn', request: Request):
@@ -963,11 +1048,11 @@ def analyze(body: 'AnalyzeIn', request: Request):
         data = {}
 
     if not data:
-        s_num  = safe_score(text)
+        s_num = safe_score(text)
         try:
-            s_sum  = gen_summary_2lines(text)
+            s_sum = gen_summary_2lines(text)
         except Exception:
-            s_sum  = "핵심은 스트레스 신호예요. 지금 10분만 한 가지부터 시작해요."
+            s_sum = "핵심은 스트레스 신호예요. 지금 10분만 한 가지부터 시작해요."
         s_tags = safe_tags(text)
         data = {"score": s_num, "summary": s_sum, "tags": s_tags}
 
@@ -976,11 +1061,12 @@ def analyze(body: 'AnalyzeIn', request: Request):
 
     out = AnalyzeOut(
         score=clamp(int(data.get("score", 50)), 0, 100),
-        summary=sanitize_korean_strict(str(data.get("summary","")), max_sent=2)[:460],
+        summary=sanitize_korean_strict(str(data.get("summary", "")), max_sent=2)[:460],
         tags=fix_tags_list(list(map(str, data.get("tags") or []))),
         caution=kw["score"] >= 3
     )
     return JSONResponse(content=out.model_dump(), media_type="application/json; charset=utf-8")
+
 
 # -------------------- Chat (주요) --------------------
 def _build_noncrisis_prompt(user_text: str, intent: str = "help_request") -> str:
@@ -1019,10 +1105,10 @@ def _build_noncrisis_prompt(user_text: str, intent: str = "help_request") -> str
              "그럴 때는 기준을 확 낮춰요. 지금 3분 타이머를 켜고 떠오르는 생각을 적은 뒤, 가장 쉬운 일 1개만 5분 해봐요."),
         ],
     }
-    imap = {"sleep":"sleep","interview":"interview","food":"food","smalltalk":"smalltalk","help_request":"help_request","anger":"anger","work":"work"}
+    imap = {"sleep": "sleep", "interview": "interview", "food": "food", "smalltalk": "smalltalk", "help_request": "help_request", "anger": "anger", "work": "work"}
     key = imap.get(intent)
     if not key:
-        key = "work" if any(k in user_text for k in ["퇴근","업무","일이","프로젝트"]) else "help_request"
+        key = "work" if any(k in user_text for k in ["퇴근", "업무", "일이", "프로젝트"]) else "help_request"
     shots = fewshots_map.get(key, fewshots_map["help_request"])
     msg = f"[가이드]\n{system_style}\n\n"
     for u, a in shots:
@@ -1030,6 +1116,7 @@ def _build_noncrisis_prompt(user_text: str, intent: str = "help_request") -> str
     actions_hint = " / ".join(pick_actions(key, k=2))
     msg += f"[USER]\n{user_text}\n\n[ASSISTANT]\n(오늘 해볼 것: {actions_hint}) "
     return msg
+
 
 @app.post("/v1/chat", dependencies=[Depends(require_api_key)])
 def chat(body: 'ChatIn', request: Request):
@@ -1042,7 +1129,8 @@ def chat(body: 'ChatIn', request: Request):
         coach = safe_coach_reply(text) if CRISIS_MODE == "template_plus_coach" else ""
         reply = (base + ("\n\n" + coach if coach else "")).strip()
         safety_flags = ["CRISIS_STRICT_HIT", "CRISIS_TEMPLATED"]
-        if encoding_suspect: safety_flags.append("ENCODING_SUSPECT")
+        if encoding_suspect:
+            safety_flags.append("ENCODING_SUSPECT")
         reply = finalize_reply(text, reply, intent="safety_crisis")
         try:
             DB.log_chat(body.user_id, body.session_id, text, reply, safety_flags)
@@ -1057,10 +1145,14 @@ def chat(body: 'ChatIn', request: Request):
     risk = risk_j.get("risk", "low")
 
     safety_flags = []
-    if kw["score"] >= 3: safety_flags.append("CRISIS_KEYWORD_HIT")
-    if risk == "high": safety_flags.append("CRISIS_LLM_HIGH")
-    elif risk == "medium" and kw["score"] >= 1: safety_flags.append("CRISIS_LLM_MEDIUM")
-    if encoding_suspect: safety_flags.append("ENCODING_SUSPECT")
+    if kw["score"] >= 3:
+        safety_flags.append("CRISIS_KEYWORD_HIT")
+    if risk == "high":
+        safety_flags.append("CRISIS_LLM_HIGH")
+    elif risk == "medium" and kw["score"] >= 1:
+        safety_flags.append("CRISIS_LLM_MEDIUM")
+    if encoding_suspect:
+        safety_flags.append("ENCODING_SUSPECT")
 
     crisis = decide_crisis(kw["score"], risk, CRISIS_TEMPLATE_POLICY)
 
@@ -1094,6 +1186,7 @@ def chat(body: 'ChatIn', request: Request):
     out = ChatOut(reply=reply, safetyFlags=safety_flags)
     return JSONResponse(content=out.model_dump(), media_type="application/json; charset=utf-8")
 
+
 # -------------------- /v1/chatx (분석+답변) --------------------
 @app.post("/v1/chatx", dependencies=[Depends(require_api_key)])
 def chatx(body: 'ChatIn', request: Request):
@@ -1114,7 +1207,7 @@ def chatx(body: 'ChatIn', request: Request):
             i2, c2, s2 = detect_intent_llm(text_raw)
             intent, intent_conf, intent_src = i2, c2, s2
 
-    s_num  = safe_score(text_raw)
+    s_num = safe_score(text_raw)
     s_tags = safe_tags(text_raw)
     analysis = {
         "intent": intent,
@@ -1133,11 +1226,16 @@ def chatx(body: 'ChatIn', request: Request):
     }
 
     safety_flags: List[str] = []
-    if kw["score"] >= 3: safety_flags.append("CRISIS_KEYWORD_HIT")
-    if strict: safety_flags.append("CRISIS_STRICT_HIT")
-    if risk == "high": safety_flags.append("CRISIS_LLM_HIGH")
-    elif risk == "medium" and kw["score"] >= 1: safety_flags.append("CRISIS_LLM_MEDIUM")
-    if encoding_suspect: safety_flags.append("ENCODING_SUSPECT")
+    if kw["score"] >= 3:
+        safety_flags.append("CRISIS_KEYWORD_HIT")
+    if strict:
+        safety_flags.append("CRISIS_STRICT_HIT")
+    if risk == "high":
+        safety_flags.append("CRISIS_LLM_HIGH")
+    elif risk == "medium" and kw["score"] >= 1:
+        safety_flags.append("CRISIS_LLM_MEDIUM")
+    if encoding_suspect:
+        safety_flags.append("ENCODING_SUSPECT")
     if DEBUG_JSON:
         safety_flags.append(f"DEBUG:kw={kw['score']},risk={risk},policy={CRISIS_TEMPLATE_POLICY},strict={int(strict)}")
 
@@ -1167,6 +1265,7 @@ def chatx(body: 'ChatIn', request: Request):
         media_type="application/json; charset=utf-8"
     )
 
+
 # -------------------- OpenAI /v1/chat/completions --------------------
 def _build_history_and_messages(session_id: str, oai_messages: List[OAIMsg]):
     system = None
@@ -1188,11 +1287,13 @@ def _build_history_and_messages(session_id: str, oai_messages: List[OAIMsg]):
     msgs.extend(core_msgs)
     return msgs
 
+
 def _oai_token_count(s: str) -> int:
     try:
         return len(tokenizer.encode(s))
     except Exception:
         return max(1, len(s) // 3)
+
 
 @app.post("/v1/chat/completions", dependencies=[Depends(require_api_key)])
 def oai_chat_completions(req: OAIChatReq):
@@ -1264,7 +1365,7 @@ def oai_chat_completions(req: OAIChatReq):
             }
             yield f"data: {json.dumps(header, ensure_ascii=False)}\n\n"
             for i in range(0, len(reply), 40):
-                chunk = reply[i:i+40]
+                chunk = reply[i:i + 40]
                 data = {
                     "id": header["id"],
                     "object": "chat.completion.chunk",
@@ -1282,6 +1383,7 @@ def oai_chat_completions(req: OAIChatReq):
             }
             yield f"data: {json.dumps(done, ensure_ascii=False)}\n\n"
             yield "data: [DONE]\n\n"
+
         return StreamingResponse(sse_strict(), media_type="text/event-stream")
 
     def sse():
@@ -1303,7 +1405,7 @@ def oai_chat_completions(req: OAIChatReq):
         }
         yield f"data: {json.dumps(header, ensure_ascii=False)}\n\n"
         for i in range(0, len(reply_fixed), 40):
-            chunk = reply_fixed[i:i+40]
+            chunk = reply_fixed[i:i + 40]
             data = {
                 "id": header["id"],
                 "object": "chat.completion.chunk",
@@ -1323,6 +1425,7 @@ def oai_chat_completions(req: OAIChatReq):
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(sse(), media_type="text/event-stream")
+
 
 # --- LoRA 어댑터 로드(있으면 자동 적용) ---
 ADAPTER_DIR = os.getenv("HUE_ADAPTER_DIR")
