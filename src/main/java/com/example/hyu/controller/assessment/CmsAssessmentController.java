@@ -118,7 +118,7 @@ public class CmsAssessmentController {
        점수 구간표(Range) — 단건 CRUD
        ========================= */
 
-    /** [추가] 단건 생성 */
+    /** 단건 생성 */
     @PostMapping("/{assessmentId}/ranges")
     public ResponseEntity<Long> createRange(@PathVariable Long assessmentId,
                                             @Valid @RequestBody CmsRangeUpsertReq body,
@@ -129,13 +129,13 @@ public class CmsAssessmentController {
                 .body(rangeId);
     }
 
-    /** [추가] 단건 조회 */
+    /** 단건 조회 */
     @GetMapping("/ranges/{rangeId}")
     public CmsRangeRes getRange(@PathVariable Long rangeId) {
         return service.getRange(rangeId);
     }
 
-    /** [추가] 단건 수정 */
+    /**  단건 수정 */
     @PutMapping("/ranges/{rangeId}")
     public ResponseEntity<Void> updateRange(@PathVariable Long rangeId,
                                             @Valid @RequestBody CmsRangeUpsertReq body,
@@ -144,7 +144,7 @@ public class CmsAssessmentController {
         return ResponseEntity.noContent().build();
     }
 
-    /** [추가] 단건 삭제 */
+    /** 단건 삭제 */
     @DeleteMapping("/ranges/{rangeId}")
     public ResponseEntity<Void> deleteRange(@PathVariable Long rangeId,
                                             @AuthenticationPrincipal AuthPrincipal principal) {

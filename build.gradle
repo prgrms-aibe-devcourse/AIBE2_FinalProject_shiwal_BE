@@ -25,6 +25,7 @@ repositories {
 }
 
 dependencies {
+    // ------- App starters
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
     implementation 'org.springframework.boot:spring-boot-starter-cache'
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
@@ -32,38 +33,33 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-webflux'   // WebClient 용
 
-    compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-    runtimeOnly 'com.mysql:mysql-connector-j'
-    testRuntimeOnly 'com.mysql:mysql-connector-j'
-    annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testImplementation 'org.springframework.security:spring-security-test'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    // WebClient만 필요 -> starter-webflux 대신 모듈만 추가
+    implementation 'org.springframework:spring-webflux'
 
+    // OpenAPI (MVC 버전)
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12'
+
+    // JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
     runtimeOnly   'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly   'io.jsonwebtoken:jjwt-jackson:0.12.5'
-	implementation 'org.springframework.boot:spring-boot-starter-actuator'
-	implementation 'org.springframework.boot:spring-boot-starter-cache'
-	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
-	implementation 'org.springframework.boot:spring-boot-starter-security'
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.12'
-	implementation 'io.jsonwebtoken:jjwt-api:0.12.5'
-	runtimeOnly   'io.jsonwebtoken:jjwt-impl:0.12.5'
-	runtimeOnly   'io.jsonwebtoken:jjwt-jackson:0.12.5'
-	compileOnly 'org.projectlombok:lombok'
-	annotationProcessor 'org.projectlombok:lombok'
-	developmentOnly 'org.springframework.boot:spring-boot-devtools'
-	runtimeOnly 'com.mysql:mysql-connector-j'
-	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'org.springframework.security:spring-security-test'
-	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // DB 드라이버 (런타임)
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // Dev
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // ------- Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'com.h2database:h2'
+
 }
 
 tasks.named('test') {
