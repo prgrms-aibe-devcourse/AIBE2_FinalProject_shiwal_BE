@@ -11,8 +11,8 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class RestClientConfig {
 
-    @Bean
-    public RestTemplate restTemplate(RestTemplateBuilder builder) {
+    @Bean(name = "aiRestTemplate") // ← 이름을 바꿔서 충돌 제거
+    public RestTemplate aiRestTemplate(RestTemplateBuilder builder) {
         RestTemplate rt = builder.build();
         // String 응답을 UTF-8로 확실히 처리
         rt.getMessageConverters().removeIf(c -> c instanceof StringHttpMessageConverter);
