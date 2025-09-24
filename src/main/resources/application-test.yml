@@ -3,16 +3,31 @@ spring:
     url: jdbc:mysql://127.0.0.1:3306/app?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
     username: app
     password: app
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop   # 테스트: 시작 시 생성, 종료 시 삭제
+    properties:
+      hibernate:
+        format_sql: true
+
   data:
     redis:
       host: 127.0.0.1
       port: 6379
 
-  jpa:
-    hibernate:
-      ddl-auto: create-drop   # 테스트 시작 시 생성, 끝나면 삭제
-    properties:
-      hibernate:
-        format_sql: true
+management:
+  endpoint:
+    health:
+      show-details: always
+  health:
+    # 테스트는 외부 의존성 없이 가볍게
+    redis:
+      enabled: false
+    db:
+      enabled: true
 
-logging.level.org.hibernate.SQL: warn
+logging:
+  level:
+    org.hibernate.SQL: warn
