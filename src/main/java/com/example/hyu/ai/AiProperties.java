@@ -3,6 +3,7 @@ package com.example.hyu.ai;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "hue.ai")
+
 public class AiProperties {
     /** ex) http://localhost:8001 */
     private String baseUrl;
@@ -25,4 +26,7 @@ public class AiProperties {
     public void setApiKey(String apiKey) {
         this.apiKey = apiKey;
     }
+
+public record AiProperties(String baseUrl, String apiKey) {
+
 }
