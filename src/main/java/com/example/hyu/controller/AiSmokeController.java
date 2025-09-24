@@ -14,13 +14,12 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AiSmokeController {
 
-        @Value("${AI_BASE_URL:http://localhost:8001}")
+        @Value("${hue.ai.base-url:${HUE_AI_BASE_URL:http://localhost:8001}}")
         private String aiBaseUrl;
 
-        @Value("${AI_API_KEY:dev-key}")
+        @Value("${hue.ai.api-key:${HUE_API_KEY:dev-key}}")
         private String aiApiKey;
 
-        // 이름 바뀐 빈을 명시적으로 주입
         private final @Qualifier("aiRestTemplate") RestTemplate restTemplate;
 
         @PostMapping(path = "/smoke", produces = "application/json;charset=UTF-8")
@@ -29,8 +28,10 @@ public class AiSmokeController {
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("X-API-Key", aiApiKey);
 
-                ResponseEntity<String> res = restTemplate.postForEntity(aiBaseUrl + "/v1/chat",
-                                new HttpEntity<>(body, headers), String.class);
+                ResponseEntity<String> res = restTemplate.postForEntity(
+                                aiBaseUrl + "/v1/chat",
+                                new HttpEntity<>(body, headers),
+                                String.class);
 
                 return ResponseEntity.status(res.getStatusCode())
                                 .contentType(MediaType.parseMediaType("application/json;charset=UTF-8"))
@@ -43,8 +44,10 @@ public class AiSmokeController {
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 headers.set("X-API-Key", aiApiKey);
 
-                ResponseEntity<String> res = restTemplate.postForEntity(aiBaseUrl + "/v1/analyze",
-                                new HttpEntity<>(body, headers), String.class);
+                ResponseEntity<String> res = restTemplate.postForEntity(
+                                aiBaseUrl + "/v1/analyze",
+                                new HttpEntity<>(body, headers),
+                                String.class);
 
                 return ResponseEntity.status(res.getStatusCode())
                                 .contentType(MediaType.parseMediaType("application/json;charset=UTF-8"))

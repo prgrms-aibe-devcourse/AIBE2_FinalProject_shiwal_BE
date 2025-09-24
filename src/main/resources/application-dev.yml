@@ -45,3 +45,15 @@ springdoc:
   swagger-ui:
     enabled: true
     display-request-duration: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always
+  health:
+    redis:
+      enabled: false   # 👈 개발용: Redis 미기동이면 헬스체크 제외
