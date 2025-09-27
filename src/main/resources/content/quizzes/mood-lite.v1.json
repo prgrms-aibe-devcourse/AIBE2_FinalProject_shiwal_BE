@@ -1,0 +1,29 @@
+{
+  "code": "mood-lite",
+  "lang": "ko",
+  "version": 1,
+  "meta": {
+    "title": "심리 검사(기분 온도계)",
+    "questionCount": 10,
+    "description": "최근 1주 컨디션을 가볍게 점검해요. (오락용, 진단 아님)"
+  },
+  "questions": [
+    { "id": "q1",  "text": "최근 1주, 무기력함을 자주 느꼈다",                 "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q2",  "text": "하고 싶은 일에 흥미가 줄었다",                     "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q3",  "text": "수면이나 식사 리듬이 평소보다 흐트러졌다",          "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q4",  "text": "사소한 일에도 짜증이나 불안이 늘었다",             "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q5",  "text": "휴식 후에도 개운함이 적었다",                     "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q6",  "text": "일·학업에 집중하는 데 어려움이 있었다",            "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q7",  "text": "의욕이 쉽게 꺼지고 시작이 잘 안 됐다",             "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q8",  "text": "몸이 무겁거나 피로감이 누적된 느낌이었다",         "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q9",  "text": "사람을 만나거나 연락하는 것이 부담스러웠다",        "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q10", "text": "기분을 스스로 끌어올리기가 어려웠다",              "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } }
+  ],
+  "scoring": { "mode": "sum" },
+  "results": [
+    { "slug": "clear",  "range": [0, 6],   "title": "맑음",       "summary": "컨디션 양호! 이 페이스 유지해요." },
+    { "slug": "mild",   "range": [7, 12],  "title": "약간 흐림",  "summary": "가벼운 리프레시가 도움이 돼요." },
+    { "slug": "cloudy", "range": [13, 21], "title": "흐림",       "summary": "수면·운동·식사 루틴 점검 추천." },
+    { "slug": "rainy",  "range": [22, 30], "title": "비옴",       "summary": "셀프케어를 우선하고 무리하지 마세요." }
+  ]
+}
