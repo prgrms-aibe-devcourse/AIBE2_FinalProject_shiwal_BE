@@ -17,6 +17,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -26,15 +27,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableConfigurationProperties(JwtProperties.class)
 class SecurityConfig {
 
-    /**
-     * 개발/운영 모드 스위치
-     * application(-dev).yml 에서 security.open-mode=true/false 로 제어
-     * (주의: spring.security.open-mode 가 아니라 security.open-mode)
-     */
     @Value("${security.open-mode:true}")
     private boolean openMode;
 
-    // JWT 필터(블랙리스트 JTI 검사 포함)
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter(
             JwtTokenProvider provider,
@@ -52,7 +47,6 @@ class SecurityConfig {
         return new CustomAccessDeniedHandler();
     }
 
-    // 정지/탈퇴 전역 차단 필터
     @Bean
     public SuspensionGuardFilter suspensionGuardFilter(UserRepository userRepository) {
         return new SuspensionGuardFilter(userRepository);
@@ -68,12 +62,10 @@ class SecurityConfig {
             ViewCookieFilter viewCookieFilter) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
-                .httpBasic(b -> b.disable())
-                .formLogin(f -> f.disable())
+                .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // 🔹 CorsConfig의 CorsConfigurationSource 를 Security에 연결
                 .cors(Customizer.withDefaults())
 
                 .authorizeHttpRequests(auth -> {
@@ -90,10 +82,13 @@ class SecurityConfig {
                             "/static/**", "/favicon.ico",
                             "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
                             "/sessions/**", "/checkins/**",
-                            "/api/public/password-reset/**").permitAll();
+                            "/api/public/password-reset/**"
+                    ).permitAll();
 
                     // 공개 GET
                     auth.requestMatchers(HttpMethod.GET,
+                            "/quizzes", "/quizzes/**",
+
                             "/api/assessments",
                             "/api/assessments/*/questions",
                             "/api/assessments/by-code/**",
@@ -103,17 +98,18 @@ class SecurityConfig {
                             "/api/community-posts/*/comments/*/likes/count",
                             "/api/community-posts/*/polls",
                             "/api/polls/*",
-                            "/api/polls/*/results").permitAll();
+                            "/api/polls/*/results"
+                    ).permitAll();
 
                     // 공개 PATCH/POST (선택적)
                     auth.requestMatchers(HttpMethod.PATCH, "/api/assessments/*/answers").permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/api/assessments/*/submit").permitAll();
 
-                    // 🔹 DevPlayground 스모크용: /api/ai/** 경로
+                    // DevPlayground: /api/ai/**
                     if (openMode) {
-                        auth.requestMatchers("/api/ai/**").permitAll(); // dev: 열어둠
+                        auth.requestMatchers("/api/ai/**").permitAll();
                     } else {
-                        auth.requestMatchers("/api/ai/**").authenticated(); // prod: 보호
+                        auth.requestMatchers("/api/ai/**").authenticated();
                     }
 
                     // 보호: 인증 필요
@@ -126,9 +122,10 @@ class SecurityConfig {
                             "/api/community-posts/*/polls",
                             "/api/polls/*/vote",
                             "/api/polls/*",
-                            "/api/reports/**").authenticated();
+                            "/api/reports/**"
+                    ).authenticated();
 
-                    // --- 관리자/액추에이터 ---
+                    // 관리자/액추에이터
                     if (openMode) {
                         auth.requestMatchers("/api/admin/**").permitAll();
                         auth.requestMatchers("/actuator/**").permitAll();
@@ -139,9 +136,9 @@ class SecurityConfig {
 
                     // 나머지
                     if (openMode) {
-                        auth.anyRequest().permitAll(); // dev: 광범위 공개
+                        auth.anyRequest().permitAll();
                     } else {
-                        auth.anyRequest().authenticated(); // prod: 기본 보호
+                        auth.anyRequest().authenticated();
                     }
                 })
 

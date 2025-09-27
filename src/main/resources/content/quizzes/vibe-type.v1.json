@@ -1,0 +1,146 @@
+{
+  "code": "vibe-type",
+  "lang": "ko",
+  "version": 1,
+  "meta": {
+    "title": "성격진단(바이브 타입)",
+    "questionCount": 10,
+    "description": "오늘의 당신 바이브는? (오락용, 진단 아님)"
+  },
+  "questions": [
+    {
+      "id": "q1",
+      "text": "주말 아침, 가장 끌리는 건?",
+      "type": "single",
+      "options": [
+        { "id": "q1o1", "label": "새로운 곳 탐험",        "vote": "explorer" },
+        { "id": "q1o2", "label": "할 일 정리",            "vote": "planner" },
+        { "id": "q1o3", "label": "플레이리스트 감상",     "vote": "feeler" },
+        { "id": "q1o4", "label": "친구와 수다/약속",      "vote": "connector" },
+        { "id": "q1o5", "label": "컨디션 조절하며 천천히", "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q2",
+      "text": "일정이 틀어지면 나는…",
+      "type": "single",
+      "options": [
+        { "id": "q2o1", "label": "즉흥 플랜B 가동",       "vote": "explorer" },
+        { "id": "q2o2", "label": "다시 계획 재정렬",       "vote": "planner" },
+        { "id": "q2o3", "label": "분위기 좋은 대안 찾기", "vote": "feeler" },
+        { "id": "q2o4", "label": "함께할 사람부터 찾기",  "vote": "connector" },
+        { "id": "q2o5", "label": "오늘은 속도 늦추기",     "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q3",
+      "text": "에너지가 오르는 순간은?",
+      "type": "single",
+      "options": [
+        { "id": "q3o1", "label": "처음 해보는 경험", "vote": "explorer" },
+        { "id": "q3o2", "label": "체크리스트 완료", "vote": "planner" },
+        { "id": "q3o3", "label": "좋은 음악/풍경",  "vote": "feeler" },
+        { "id": "q3o4", "label": "대화/협업",       "vote": "connector" },
+        { "id": "q3o5", "label": "리듬 타는 루틴", "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q4",
+      "text": "하루 마감 루틴은?",
+      "type": "single",
+      "options": [
+        { "id": "q4o1", "label": "내일 새로운 계획 세우기", "vote": "explorer" },
+        { "id": "q4o2", "label": "다음날 할 일 정리",       "vote": "planner" },
+        { "id": "q4o3", "label": "음악/글/사진으로 정리",   "vote": "feeler" },
+        { "id": "q4o4", "label": "지인에게 톡/통화",        "vote": "connector" },
+        { "id": "q4o5", "label": "스트레칭/컨디션 관리",     "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q5",
+      "text": "점심 메뉴를 고를 때 우선순위는?",
+      "type": "single",
+      "options": [
+        { "id": "q5o1", "label": "안 먹어본 집 도전",  "vote": "explorer" },
+        { "id": "q5o2", "label": "가성비/빠른 결정",   "vote": "planner" },
+        { "id": "q5o3", "label": "분위기와 감성",      "vote": "feeler" },
+        { "id": "q5o4", "label": "함께 먹을 사람",     "vote": "connector" },
+        { "id": "q5o5", "label": "속 편한 메뉴",       "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q6",
+      "text": "새 프로젝트가 생기면 나는…",
+      "type": "single",
+      "options": [
+        { "id": "q6o1", "label": "바로 시범/파일럿부터", "vote": "explorer" },
+        { "id": "q6o2", "label": "계획·리소스부터 정리", "vote": "planner" },
+        { "id": "q6o3", "label": "레퍼런스/무드보드 탐색", "vote": "feeler" },
+        { "id": "q6o4", "label": "함께할 팀/파트너 찾기", "vote": "connector" },
+        { "id": "q6o5", "label": "범위·속도 조절 먼저",   "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q7",
+      "text": "휴식 시간이 생기면 가장 먼저?",
+      "type": "single",
+      "options": [
+        { "id": "q7o1", "label": "가보지 않은 곳 산책", "vote": "explorer" },
+        { "id": "q7o2", "label": "미뤄둔 정리/정돈",   "vote": "planner" },
+        { "id": "q7o3", "label": "플레이리스트/영상",  "vote": "feeler" },
+        { "id": "q7o4", "label": "지인과 약속 잡기",   "vote": "connector" },
+        { "id": "q7o5", "label": "짧은 낮잠·스트레칭", "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q8",
+      "text": "의견 충돌 상황에서 내 성향은?",
+      "type": "single",
+      "options": [
+        { "id": "q8o1", "label": "새 관점 제안하며 밀고 감", "vote": "explorer" },
+        { "id": "q8o2", "label": "근거·자료로 정리해 설득",  "vote": "planner" },
+        { "id": "q8o3", "label": "감정 온도 낮추며 완화",     "vote": "feeler" },
+        { "id": "q8o4", "label": "중재·협상으로 타협점",     "vote": "connector" },
+        { "id": "q8o5", "label": "무리하지 않는 균형안",     "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q9",
+      "text": "새 기기/앱을 쓸 때 나는…",
+      "type": "single",
+      "options": [
+        { "id": "q9o1", "label": "튜토리얼 건너뛰고 탐험", "vote": "explorer" },
+        { "id": "q9o2", "label": "매뉴얼/설정부터 정독",   "vote": "planner" },
+        { "id": "q9o3", "label": "디자인/감성 먼저 본다",  "vote": "feeler" },
+        { "id": "q9o4", "label": "공유/협업 기능 탐색",    "vote": "connector" },
+        { "id": "q9o5", "label": "필요한 최소 기능만",     "vote": "balancer" }
+      ]
+    },
+    {
+      "id": "q10",
+      "text": "기분 전환이 필요할 때의 선택은?",
+      "type": "single",
+      "options": [
+        { "id": "q10o1", "label": "처음 가보는 활동/장소", "vote": "explorer" },
+        { "id": "q10o2", "label": "내일 계획 재정비",      "vote": "planner" },
+        { "id": "q10o3", "label": "좋아하는 음악·전시",    "vote": "feeler" },
+        { "id": "q10o4", "label": "누군가와 수다/게임",    "vote": "connector" },
+        { "id": "q10o5", "label": "가벼운 운동·명상",      "vote": "balancer" }
+      ]
+    }
+  ],
+  "scoring": {
+    "mode": "majority",
+    "tiebreaker": {
+      "priority": ["explorer","planner","balancer","feeler","connector"],
+      "lastQuestionsWeight": 2
+    }
+  },
+  "results": [
+    { "slug": "explorer",  "title": "탐험가형", "summary": "새로움이 에너지!" },
+    { "slug": "planner",   "title": "계획러형", "summary": "루틴이 안정!" },
+    { "slug": "balancer",  "title": "조율가형", "summary": "균형이 핵심!" },
+    { "slug": "feeler",    "title": "감성러형", "summary": "무드가 전부!" },
+    { "slug": "connector", "title": "연결러형", "summary": "사람이 힘!" }
+  ]
+}

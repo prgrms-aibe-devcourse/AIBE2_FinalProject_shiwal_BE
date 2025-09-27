@@ -1,0 +1,29 @@
+{
+  "code": "stress-mini",
+  "lang": "ko",
+  "version": 1,
+  "meta": {
+    "title": "스트레스 테스트(미니)",
+    "questionCount": 10,
+    "description": "지금 스트레스 강도를 가볍게 체크합니다. (오락용, 진단 아님)"
+  },
+  "questions": [
+    { "id": "q1",  "text": "최근 1주, 압박감 때문에 집중이 어려웠다",      "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q2",  "text": "잠들기 어렵거나 자주 깼다",                    "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q3",  "text": "몸이 뻐근하거나 과민 반응이 있었다",           "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q4",  "text": "소소한 일에도 예민해지고 화가 치밀었다",        "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q5",  "text": "마감·과제 생각이 계속 떠올라 마음이 불안했다",  "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q6",  "text": "평소 즐기던 일에서도 재미를 느끼기 어려웠다",  "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q7",  "text": "피로가 쉽게 누적되어 회복이 더뎠다",           "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q8",  "text": "관계나 소통이 부담스러워 회피하고 싶었다",      "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q9",  "text": "식습관이 불규칙해지거나 과식·식욕저하가 있었다", "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } },
+    { "id": "q10", "text": "내 상황을 통제하기 어렵게 느꼈다",             "type": "scale", "scale": { "min": 0, "max": 3, "labels": ["전혀","가끔","자주","거의 매일"] } }
+  ],
+  "scoring": { "mode": "sum" },
+  "results": [
+    { "slug": "low",       "range": [0, 6],   "title": "낮음",      "summary": "괜찮은 편! 작은 루틴만 유지해요." },
+    { "slug": "moderate",  "range": [7, 13],  "title": "보통",      "summary": "가벼운 조절과 휴식이 도움돼요." },
+    { "slug": "high",      "range": [14, 21], "title": "높음",      "summary": "휴식·업무 조정 등 리듬 재정비 권장." },
+    { "slug": "very-high", "range": [22, 30], "title": "매우 높음", "summary": "즉시 셀프케어 우선, 무리 금지." }
+  ]
+}
