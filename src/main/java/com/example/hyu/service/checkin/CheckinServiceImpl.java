@@ -1,5 +1,6 @@
 package com.example.hyu.service.checkin;
 
+import com.example.hyu.dto.checkin.CheckinCreateRequest;
 import com.example.hyu.dto.checkin.CheckinCreateResponse;
 import com.example.hyu.dto.checkin.CheckinStatsResponse;
 import com.example.hyu.dto.checkin.CheckinTodayResponse;
@@ -13,6 +14,7 @@ import java.time.*;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -31,24 +33,36 @@ public class CheckinServiceImpl implements CheckinService {
         LocalDate today = today();
         boolean checked = checkinRepo.existsByUserIdAndDate(userId, today);
         int streak = computeStreak(userId, today);
-        boolean shouldPrompt = !checked; // 필요 시: 리마인더 정책 추가 가능
+        boolean shouldPrompt = !checked;
         return new CheckinTodayResponse(checked, shouldPrompt, today, streak);
     }
 
+    /** 신규면 생성, 있으면 보강 업데이트(멱등) */
     @Override
     @Transactional
-    public CheckinCreateResponse checkinToday(Long userId) {
+    public CheckinCreateResponse checkinToday(Long userId, CheckinCreateRequest body) {
         LocalDate today = today();
-        boolean exists = checkinRepo.existsByUserIdAndDate(userId, today);
-        if (!exists) {
-            checkinRepo.save(Checkin.builder()
+
+        Optional<Checkin> existingOpt = checkinRepo.findByUserIdAndDate(userId, today);
+        boolean created;
+
+        if (existingOpt.isEmpty()) {
+            Checkin c = Checkin.builder()
                     .userId(userId)
                     .date(today)
                     .createdAt(now())
-                    .build());
+                    .build();
+            applyBody(c, body);
+            checkinRepo.save(c);
+            created = true;
+        } else {
+            Checkin c = existingOpt.get();
+            applyBody(c, body);
+            created = false;
         }
+
         int streak = computeStreak(userId, today);
-        return new CheckinCreateResponse(!exists, today, streak);
+        return new CheckinCreateResponse(created, today, streak);
     }
 
     @Override
@@ -82,5 +96,24 @@ public class CheckinServiceImpl implements CheckinService {
             cur = cur.minusDays(1);
         }
         return s;
+    }
+
+    /** 최소 필드만 반영 (null은 무시) */
+    private void applyBody(Checkin c, CheckinCreateRequest body) {
+        if (body == null) return;
+
+        if (body.mood() != null)   c.setMood(clamp1to5(body.mood()));
+        if (body.energy() != null) c.setEnergy(clamp1to5(body.energy()));
+        if (body.stress() != null) c.setStress(clamp1to5(body.stress()));
+
+        if (body.note() != null) {
+            String note = body.note();
+            if (note.length() > 200) note = note.substring(0, 200);
+            c.setNote(note);
+        }
+    }
+
+    private static int clamp1to5(int v) {
+        return Math.max(1, Math.min(5, v));
     }
 }

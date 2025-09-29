@@ -1,12 +1,15 @@
 package com.example.hyu.controller.checkin;
 
+import com.example.hyu.dto.checkin.CheckinCreateRequest;   // ⬅️ 추가
 import com.example.hyu.dto.checkin.CheckinCreateResponse;
 import com.example.hyu.dto.checkin.CheckinStatsResponse;
 import com.example.hyu.dto.checkin.CheckinTodayResponse;
 import com.example.hyu.security.AuthPrincipal;
 import com.example.hyu.service.checkin.CheckinService;
+import jakarta.validation.Valid;                              // ⬅️ 유효성
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;                     // ⬅️ consumes용
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -29,10 +32,13 @@ public class CheckinController {
         return checkinService.getToday(me.getUserId());
     }
 
-    /** 출석체크(같은 날 여러번 호출해도 안전) */
-    @PostMapping
-    public CheckinCreateResponse create(@AuthenticationPrincipal AuthPrincipal me) {
-        return checkinService.checkinToday(me.getUserId());
+    /** 출석체크(같은 날 여러번 호출해도 안전) — JSON 바디 받도록 수정 */
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public CheckinCreateResponse create(
+            @AuthenticationPrincipal AuthPrincipal me,
+            @Valid @RequestBody CheckinCreateRequest body   // ⬅️ 핵심
+    ) {
+        return checkinService.checkinToday(me.getUserId(), body);
     }
 
     /** 임의 기간 통계 */

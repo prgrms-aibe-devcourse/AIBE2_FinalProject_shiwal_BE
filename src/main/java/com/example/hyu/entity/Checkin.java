@@ -2,7 +2,6 @@ package com.example.hyu.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.*;
 
 @Entity
@@ -28,6 +27,14 @@ public class Checkin {
 
     @Column(name = "created_at", nullable=false, updatable = false)
     private Instant createdAt;
+
+    // ── 최소 확장 필드 ──
+    private Integer mood;                 // 1~5 (nullable)
+    @Column(length = 200)
+    private String note;
+    // 메모(200자 제한)
+    private Integer energy;               // 1~5 (nullable)
+    private Integer stress;               // 1~5 (nullable)
 
     @PrePersist
     void onCreate() {
