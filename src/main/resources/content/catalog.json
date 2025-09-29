@@ -1,0 +1,28 @@
+{
+  "code": "quiz-catalog",
+  "lang": "ko",
+  "version": 1,
+  "items": [
+    {
+      "code": "mood-lite",
+      "title": "심리 검사(기분 온도계)",
+      "file": "content/mood-lite.json",
+      "lang": "ko",
+      "version": 1
+    },
+    {
+      "code": "stress-mini",
+      "title": "스트레스 테스트(미니)",
+      "file": "content/stress-mini.json",
+      "lang": "ko",
+      "version": 1
+    },
+    {
+      "code": "vibe-type",
+      "title": "성격진단(바이브 타입)",
+      "file": "content/vibe-type.json",
+      "lang": "ko",
+      "version": 1
+    }
+  ]
+}
